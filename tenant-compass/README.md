@@ -37,8 +37,9 @@ Architecture détaillée (scripts, flux, sécurité, stockage) : [ARCHITECTURE.m
 |---|---|---|
 | Tenant Guard | Bandeau et cadre de couleur du tenant actif ; confirmation avant Enregistrer, Supprimer, Attribuer, Créer, Wipe, Retire dans un tenant PROD | Portails Intune, Entra, Azure, Defender, M365, Purview, Exchange, Teams |
 | As-Built en un clic | Export des stratégies choisies en Markdown, Word et JSON, scripts compris | Bouton en bas à gauche |
-| Setting Inspector | Au survol d'un paramètre du catalogue : identifiant, OMA-URI / clé, applicabilité, licence, GPO équivalente, liens Learn | Carte au bord droit, au survol d'un paramètre |
-| Settings Explainer | Option de Setting Inspector, utilisable seule : explique le paramètre (texte rédigé, page Learn lue en direct, valeurs, valeur par défaut), puis les détails de Setting Inspector | Carte au bord droit, au survol d'un paramètre |
+| Setting Inspector | Carte au survol d'un paramètre du catalogue, section détails : identifiant, OMA-URI / clé, applicabilité, licence, GPO équivalente, liens Learn | Carte au bord droit, au survol d'un paramètre |
+| Settings Explainer | Même carte, section explication : texte rédigé, page Learn lue en direct, valeurs, valeur par défaut. Activable seule | Même carte |
+| OpenIntuneBaseline | Même carte, section OIB : valeur configurée par la baseline communautaire OpenIntuneBaseline et stratégie concernée. Activable seule | Même carte |
 | Assignment Lens | Groupes inclus / exclus, membres, filtres, chevauchements de la stratégie affichée | Bouton au-dessus d'As-Built |
 | Change Snapshot | Journal local des modifications : différence avant / après, auteur, n° de ticket, export JSON / CSV | Fenêtre en bas à droite après un enregistrement ; journal depuis le menu |
 | Set Tenant Language | Passe la console dans une langue et un format régional prédéfinis, en 1 clic | Pastille 🌐 du menu |
@@ -72,7 +73,9 @@ Clic sur l'icône de l'extension. Une ligne de pastilles montre les fonctions ac
 
 | Paramètres (⚙), fonctions | Paramètres (⚙), suite |
 |---|---|
-| ![Paramètres : bascules des fonctions, Settings Explainer en retrait sous Setting Inspector](docs/img/readme/fr/08-menu-parametres.jpg) | ![Paramètres : langue prédéfinie, délai de la carte Settings Explainer, positions par défaut](docs/img/readme/fr/09-menu-parametres-suite.jpg) |
+| ![Paramètres : bascules des fonctions, Settings Explainer et OpenIntuneBaseline en retrait sous Setting Inspector](docs/img/readme/fr/08-menu-parametres.jpg) | ![Paramètres : langue prédéfinie, délai de la carte Settings Explainer, positions par défaut](docs/img/readme/fr/09-menu-parametres-suite.jpg) |
+
+*Menu rendu avec le code réel de `popup.html` et des tenants fictifs (Contoso) : la page de l'extension ne peut pas être capturée par l'outil d'automatisation.*
 
 - **FR / EN** (en-tête) : langue de l'extension, Français (FR) ou English (US) : menu, panneaux et cartes dans le portail, boîtes de confirmation, journal, intitulés des exports As-Built. Mémorisée dans le profil du navigateur ; par défaut, la langue du navigateur. Dans le portail, la langue s'applique au rechargement de l'onglet.
 - **Bouton bleu « Recharger l'onglet du portail pour appliquer (fonctions et langue) ↻ »** : apparaît après une activation, une désactivation ou un changement de langue.
@@ -262,4 +265,6 @@ cd ../portal-language && node test.js
 ## Licence
 
 [PolyForm Noncommercial 1.0.0](LICENSE) : copie, modification et partage gratuits autorisés pour tout usage non commercial, à condition de conserver la ligne « Required Notice » (nom de l'auteur et source). Tout usage commercial demande un accord écrit.
+
+Exception : `setting-inspector/data/oib.json`, extrait d'[OpenIntuneBaseline](https://github.com/SkipToTheEndpoint/OpenIntuneBaseline) (© SkipToTheEndpoint), est distribué sous [GPL-3.0](setting-inspector/data/OIB-LICENSE.txt) ; crédit, modifications et source : [`OIB-NOTICE.md`](setting-inspector/data/OIB-NOTICE.md).
 <!--⁣​​‌​‌​​​​​​‌​​‌​‍​⁣ -->

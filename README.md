@@ -1,5 +1,7 @@
 # Tenant Compass
 
+*Boîte à outils pour le portail Microsoft Intune* · [English version](README.en.md)
+
 Extension Chrome / Edge (Manifest V3), boîte à outils pour le portail Microsoft Intune. JavaScript sans dépendance ni étape de build, sans application à inscrire dans le tenant : l'extension réutilise la session Microsoft Graph du portail.
 
 ![Tenant Compass dans le portail](tenant-compass/docs/img/readme/fr/01-portail-tenant-guard.jpg)
@@ -8,7 +10,7 @@ Extension Chrome / Edge (Manifest V3), boîte à outils pour le portail Microsof
 
 | Dossier | Extension | Rôle |
 |---|---|---|
-| [`tenant-compass/`](tenant-compass/README.md) ([English](tenant-compass/README.en.md)) | **Tenant Compass** | Tenant Guard, As-Built, Setting Inspector (et son option Settings Explainer), Assignment Lens, Change Snapshot et Set Tenant Language dans une seule extension, activables séparément depuis le menu, en français ou en anglais |
+| [`tenant-compass/`](tenant-compass/README.md) ([English](tenant-compass/README.en.md)) | **Tenant Compass** | Tenant Guard, As-Built, carte de paramètre (Setting Inspector, Settings Explainer, OpenIntuneBaseline), Assignment Lens, Change Snapshot et Set Tenant Language dans une seule extension, activables séparément depuis le menu, en français ou en anglais |
 
 Documentation technique de Tenant Compass : [`tenant-compass/ARCHITECTURE.md`](tenant-compass/ARCHITECTURE.md).
 
@@ -40,5 +42,5 @@ node tenant-compass/settings-explainer/test.js
 
 ## Licence
 
-Voir [`tenant-compass/LICENSE`](tenant-compass/LICENSE).
+[PolyForm Noncommercial 1.0.0](tenant-compass/LICENSE) : voir la section Licence du [README de l'extension](tenant-compass/README.md#licence). Les données OpenIntuneBaseline (`tenant-compass/setting-inspector/data/oib.json`) sont sous GPL-3.0 ([notice](tenant-compass/setting-inspector/data/OIB-NOTICE.md)).
 <!--⁣​​‌​‌​​​​​​‌​​‌​‍​⁣ -->

@@ -37,8 +37,9 @@ Detailed architecture (scripts, flows, security, storage), in French: [ARCHITECT
 |---|---|---|
 | Tenant Guard | Pill and colored frame for the active tenant; confirmation before Save, Delete, Assign, Create, Wipe, Retire in a PROD tenant | Intune, Entra, Azure, Defender, M365, Purview, Exchange, Teams portals |
 | One-click As-Built | Exports the selected policies to Markdown, Word and JSON, scripts included | Button at the bottom left |
-| Setting Inspector | On setting hover: definition ID, OMA-URI / key, applicability, license, equivalent GPO, Learn links | Card on the right edge, on setting hover |
-| Settings Explainer | Setting Inspector option, usable on its own: explains the setting (written text, live Learn page, values, default), then shows the Setting Inspector details | Card on the right edge, on setting hover |
+| Setting Inspector | Card on setting hover, details section: definition ID, OMA-URI / key, applicability, license, equivalent GPO, Learn links | Card on the right edge, on setting hover |
+| Settings Explainer | Same card, explanation section: written text, live Learn page, values, default. Can be used on its own | Same card |
+| OpenIntuneBaseline | Same card, OIB section: value set by the OpenIntuneBaseline community baseline and the policy concerned. Can be used on its own | Same card |
 | Assignment Lens | Included / excluded groups, members, filters, overlaps of the displayed policy | Button above As-Built |
 | Change Snapshot | Local change log: before / after diff, author, ticket number, JSON / CSV export | Window at the bottom right after a save; log from the menu |
 | Set Tenant Language | Switches the console to a preset language and regional format in one click | 🌐 pill in the menu |
@@ -72,7 +73,9 @@ Click the extension icon. A row of pills shows the active features (description 
 
 | Settings (⚙), features | Settings (⚙), continued |
 |---|---|
-| ![Settings: feature toggles, Settings Explainer indented under Setting Inspector](docs/img/readme/en/08-menu-parametres.jpg) | ![Settings: preset language, Settings Explainer card delay, reset positions](docs/img/readme/en/09-menu-parametres-suite.jpg) |
+| ![Settings: feature toggles, Settings Explainer and OpenIntuneBaseline indented under Setting Inspector](docs/img/readme/en/08-menu-parametres.jpg) | ![Settings: preset language, Settings Explainer card delay, reset positions](docs/img/readme/en/09-menu-parametres-suite.jpg) |
+
+*Menu rendered with the actual `popup.html` code and fictitious tenants (Contoso): the extension page cannot be captured by the automation tool.*
 
 - **FR / EN** (header): extension language, French (FR) or English (US): menu, portal panels and cards, confirmation dialogs, log, As-Built export headings. Stored in the browser profile; defaults to the browser language. In the portal, the language applies when the tab reloads. It does **not** change the portal's own language.
 - **Blue "Reload the portal tab to apply (features and language) ↻" button**: appears after turning a feature on or off, or changing the language.
@@ -260,4 +263,6 @@ cd ../portal-language && node test.js
 ## License
 
 [PolyForm Noncommercial 1.0.0](LICENSE): free copying, modification and sharing for any noncommercial purpose, provided the "Required Notice" line (author name and source) is kept. Any commercial use needs written consent.
+
+Exception: `setting-inspector/data/oib.json`, extracted from [OpenIntuneBaseline](https://github.com/SkipToTheEndpoint/OpenIntuneBaseline) (© SkipToTheEndpoint), is distributed under [GPL-3.0](setting-inspector/data/OIB-LICENSE.txt); credit, changes and source: [`OIB-NOTICE.md`](setting-inspector/data/OIB-NOTICE.md).
 <!--⁣​​‌​‌​​​​​​‌​​‌​‍​⁣ -->
