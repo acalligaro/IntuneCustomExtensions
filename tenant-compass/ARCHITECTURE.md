@@ -1,6 +1,6 @@
 # Tenant Compass : architecture
 
-Document destiné aux mainteneurs. Il décrit ce que fait réellement le code de `tenant-compass/` (version `0.9.3` du manifeste). Les points non confirmés par la lecture du code sont marqués **à vérifier**.
+Document destiné aux mainteneurs. Il décrit ce que fait réellement le code de `tenant-compass/` (version `0.10.0` du manifeste). Les points non confirmés par la lecture du code sont marqués **à vérifier**.
 
 ---
 
@@ -218,7 +218,7 @@ Plus `tenant-guard/background.js`, chargé par `importScripts` dans le service w
 
 **Flux.**
 
-1. Toutes les frames : `window.fetch` et `XMLHttpRequest.prototype.open` / `setRequestHeader` sont enveloppés. Un en-tête `Authorization: Bearer …` envoyé à `https://graph.microsoft.com` est gardé dans la variable `token` de la closure.
+1. Toutes les frames : `window.fetch` et `XMLHttpRequest.prototype.open` / `setRequestHeader` sont enveloppés. Un en-tête `Authorization: Bearer …` envoyé à `https://graph.microsoft.com` est gardé dans la variable `token` de la closure, **seulement si son claim `scp` contient une autorisation Intune** (`DeviceManagement*.Read*`, `isIntuneToken`) : le portail envoie aussi des jetons Graph d'autres applications, qui répondraient 403 partout.
 2. Iframes (worker) : écoute `message`. Accepte seulement si `e.source === window.top`, `e.origin` ∈ {`https://intune.microsoft.com`, `https://endpoint.microsoft.com`} et un jeton est présent. `ping` → `pong` avec le claim `tid` (pas le jeton). `get` → `graphGet(url)` → `res` (statut + corps JSON).
 3. Frame top (seulement sur les deux origines UI) : si elle a elle-même un jeton, elle appelle Graph directement ; sinon `findWorker()` envoie `ping` à toutes les frames (`'*'`, message sans donnée), attend 2 s le premier `pong` dont l'origine correspond à `WORKER_ORIGIN`, puis relaie chaque requête (délai 60 s). Un 401 oublie le worker.
 4. `graphGet` refuse toute URL hors `^https://graph.microsoft.com/(beta|v1.0)/`, force `method: 'GET'` et `credentials: 'omit'`.
@@ -227,11 +227,14 @@ Endpoints Graph (beta) appelés :
 
 | Usage | Endpoint |
 |---|---|
-| Liste | `deviceManagement/configurationPolicies`, `deviceConfigurations`, `deviceCompliancePolicies`, `groupPolicyConfigurations`, `deviceManagementScripts`, `deviceShellScripts`, `deviceHealthScripts` ; `deviceAppManagement/mobileApps` |
+| Liste | `deviceManagement/configurationPolicies`, `deviceConfigurations`, `deviceCompliancePolicies`, `groupPolicyConfigurations`, `deviceManagementScripts`, `deviceShellScripts`, `deviceHealthScripts`, `windowsAutopilotDeploymentProfiles`, `deviceEnrollmentConfigurations`, `androidDeviceOwnerEnrollmentProfiles`, `intuneBrandingProfiles`, `roleDefinitions`, `roleScopeTags` ; `depOnboardingSettings` puis `depOnboardingSettings/{id}/enrollmentProfiles` ; `deviceAppManagement/mobileApps` ; `policies/mobileDeviceManagementPolicies?$expand=includedGroups` (demande `Policy.Read.All`, absent du jeton du portail Intune : source en erreur, message dédié). Appareils Autopilot : un seul élément, sans appel à la liste (l'endpoint répond 500 à `$select` / `$top`) |
+| Détail Autopilot (appareils) | `windowsAutopilotDeviceIdentities` (tous) : lignes du document + fichier `autopilot-devices-<date>.csv`. Pas de hachage matériel : Graph ne l'expose pas |
+| Détail rôle | `roleDefinitions/{id}`, `.../roleAssignments`, `roleAssignments/{id}` (membres, étendue, balises), `roleScopeTags` |
+| Détail MDM | `policies/mobileDeviceManagementPolicies/{id}?$expand=includedGroups` (portée affichée comme affectations) |
 | Détail catalogue | `configurationPolicies/{id}`, `.../settings?$expand=settingDefinitions`, `configurationCategories/{id}` (remonte les parents) |
 | Détail ADMX | `groupPolicyConfigurations/{id}/definitionValues?$expand=definition`, `.../presentationValues?$expand=presentation` |
 | Détail autres | `{collection}/{id}` (conformité : `$expand=scheduledActionsForRule(...)`) |
-| Affectations | `{collection}/{id}/assignments`, `groups/{id}?$select=id,displayName`, `deviceManagement/assignmentFilters/{id}` |
+| Affectations | `{collection}/{id}/assignments`, `groups/{id}?$select=id,displayName`, `deviceManagement/assignmentFilters/{id}`. Aucune pour les appareils Autopilot, profils ADE et Android (liés à un jeton), rôles (dans le détail) et MDM (portée) |
 
 Pagination par `@odata.nextLink` (sans limite). Parallélisme borné par `pool()` (3 à 4). Cache mémoire `memo` par clé.
 
@@ -254,11 +257,13 @@ sequenceDiagram
 
 **Langue des exports.** Les textes générés par `lib.js` (types, titres et en-têtes Markdown / Word, libellés) passent par `T(key, frDefault)` : `__tenantCompassI18n.t(key)` dans la page, le défaut français inline sous Node (tests). Les exports suivent donc la langue du menu au moment du chargement de l'onglet.
 
-**Données exportées.** Valeurs secrètes masquées (`(secret masqué)`) : `SecretSettingValue` du catalogue et valeurs OMA-URI `isEncrypted`. JSON : `exportedAt`, `tenantId` (claim `tid`), et par stratégie `type`, `base`, `policy`, `settings` / `definitionValues`, `assignments`, `filters`, `groups`. Les scripts (`scriptContent`, `detectionScriptContent`, `remediationScriptContent`, règles PowerShell des apps Win32) sont décodés du Base64 en fichiers `.ps1` / `.sh`.
+**Données exportées.** Valeurs secrètes masquées (`(secret masqué)`) : `SecretSettingValue` du catalogue, valeurs OMA-URI `isEncrypted`, `tokenValue` et `qrCodeContent` (Android), `deviceAccountPassword`, `productKey`. Images retirées : `largeIcon`, logos de marque, `qrCodeImage`. ESP : les applications bloquantes (`selectedMobileAppIds`) sont nommées dans les documents, le JSON garde les identifiants. JSON : `exportedAt`, `tenantId` (claim `tid`), et par stratégie `type`, `base`, `policy`, `settings` / `definitionValues`, `assignments`, `filters`, `groups`. Les scripts (`scriptContent`, `detectionScriptContent`, `remediationScriptContent`, règles PowerShell des apps Win32) sont décodés du Base64 en fichiers `.ps1` / `.sh`.
 
 **Stockage.** Aucun `chrome.storage`. `localStorage` du portail : `tenant-compass:pos:as-built-fab`, `tenant-compass:pos:as-built-panel` (via `shared/drag.js`).
 
 **UI.** Shadow DOM **fermé** (hôte `#as-built-host`), bouton « As-Built » en bas à gauche, panneau de 500 px : recherche, filtres type / OS, cases, mode « One Policy per file » / « Toutes dans un seul fichier », option « Exporter les scripts », boutons Markdown / Word / JSON / Copier MD, barre de progression.
+
+**Ordre de la liste** (`orderItems`) : la stratégie ouverte dans le portail (GUID de l'URL du blade, avec ou sans suffixe `_…`, `guidsIn`, relu chaque seconde tant que le panneau est ouvert, **non cochée**), puis les éléments cochés dans l'ordre du clic (`Set` d'insertion), puis le reste par nom. Au réordonnancement, la première ligne visible autre que celle cochée garde sa position à l'écran. L'export suit le même ordre.
 
 **`lib.js`** (`globalThis.AsBuiltLib`). `policySummary`, `platformsOf`, `categoryPath`, `settingRows`, `propertyRows`, `admxRows`, `assignmentRows`, `toMarkdown`, `toWordHtml`, `toJson`, `maskSecrets`, `jwtTid`, `scriptFiles`, `fileName`, `htmlEscape`, `mdEscapeCell`, `fmtDate`.
 
@@ -319,7 +324,9 @@ Endpoints Graph (beta) appelés, tous en GET, `credentials: 'omit'`, `cache: 'no
 | Groupes | `groups/{id}?$select=displayName`, `groups/{id}/members/$count` (`ConsistencyLevel: eventual`) |
 | Chevauchements | `{famille pair}?$expand=assignments` (apps : `&$filter=isAssigned eq true`) |
 
-Pagination limitée à 10 pages (`MAX_PAGES`) ; `nextLink` suivi seulement s'il commence par `https://graph.microsoft.com/`. Familles : catalogue, profils de configuration, ADMX (comparés entre eux), conformité, applications.
+Pagination limitée à 10 pages (`MAX_PAGES`) ; `nextLink` suivi seulement s'il commence par `https://graph.microsoft.com/`. Familles : catalogue, profils de configuration, ADMX (comparés entre eux), conformité, applications, profils Autopilot, configurations d'inscription (ESP, restrictions…). Identifiant : GUID, éventuellement suivi d'un suffixe (`<guid>_DefaultWindows10EnrollmentCompletionPageConfiguration`) gardé tel quel pour Graph.
+
+**URL du blade** (`parseHashRef`, relue chaque seconde) : `policyId/` (famille inconnue, sondée), `appId/` (application, seulement dans `Microsoft_Intune_Apps` : la page d'inscription MDM porte l'appId d'Intune), `apProfileId/` (profil Autopilot), `profileId/` dans un blade d'inscription (ESP). Un blade sans identifiant connu vide le panneau ; les résultats vus avant ce changement sont ignorés (`navAt`).
 
 ```mermaid
 sequenceDiagram

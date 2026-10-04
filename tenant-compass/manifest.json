@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tenant Compass",
-  "version": "0.9.3",
+  "version": "0.10.0",
   "description": "Boîte à outils pour le portail Microsoft Intune : bon tenant, documentation, paramètres, affectations, journal des modifications.",
   "author": "Alexandre Calligaro",
   "minimum_chrome_version": "111",

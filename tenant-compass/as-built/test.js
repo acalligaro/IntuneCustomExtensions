@@ -228,3 +228,39 @@ assert.ok(L.toWordHtml([{ ...pol, settings: [], assignments: [] }]).includes('<h
 document.documentElement.dataset.tenantCompassLang = 'fr';
 assert.ok(L.toMarkdown([{ ...pol, settings: [], assignments: [] }]).includes('### Affectations'));
 console.log('as-built: i18n checks passed');
+
+// ---------- new kinds (French defaults: i18n is loaded above, so read them with lang fr) ----------
+const S = (k, raw) => L.policySummary(k, raw);
+assert.strictEqual(S('enr', { id: '1', displayName: 'ESP', '@odata.type': '#microsoft.graph.windows10EnrollmentCompletionPageConfiguration' }).platform, 'Windows');
+assert.strictEqual(S('dep', { id: '2', displayName: 'Mac', '@odata.type': '#microsoft.graph.depMacOSEnrollmentProfile' }).platform, 'macOS');
+assert.strictEqual(S('dep', { id: '3', displayName: 'iPad', '@odata.type': '#microsoft.graph.depIOSEnrollmentProfile' }).platform, 'iOS/iPadOS');
+assert.strictEqual(S('android', { id: '4', displayName: 'Kiosk', enrollmentMode: 'corporateOwnedAOSPUserlessDevice' }).platform, 'Android (AOSP)');
+assert.strictEqual(S('brand', { id: '5', profileName: 'Default' }).name, 'Default');
+// secrets: Android token masked in rows and JSON, never exported in clear
+const tokRows = L.propertyRows({ tokenValue: 'SECRET-TOKEN', enrollmentMode: 'corporateOwnedDedicatedDevice' });
+assert.ok(!JSON.stringify(tokRows).includes('SECRET-TOKEN'));
+assert.ok(!JSON.stringify(L.maskSecrets({ policy: { tokenValue: 'SECRET-TOKEN', qrCodeContent: '{"x":1}' } })).includes('SECRET'));
+// Autopilot CSV: header, ; escaping, formula guard
+const csv = L.autopilotCsv([{ serialNumber: 'ABC;1', manufacturer: 'HP', model: '=cmd', groupTag: 'Paris' }]).split('\r\n');
+assert.strictEqual(csv[0].split(';')[0], 'Serial number');
+assert.ok(csv[1].startsWith('"ABC;1";HP;\'=cmd;Paris'));
+// RBAC rows: group names resolved, scope tags named
+const rr = L.roleAssignmentRows([{ displayName: 'Helpdesk', members: ['g1'], resourceScopes: ['g2'], scopeType: 'resourceScope', roleScopeTagIds: ['0'] }], { g1: 'HD Agents', g2: 'Paris devices' }, { 0: 'Default' });
+assert.deepStrictEqual(rr.map(r => r.value), ['HD Agents', 'Paris devices', 'Default']);
+// MDM scope as assignments
+assert.strictEqual(L.mdmAssignmentRows({ appliesTo: 'selected', includedGroups: [{ id: 'g', displayName: 'Pilot' }] })[0].group, 'Pilot');
+assert.strictEqual(L.mdmAssignmentRows({ appliesTo: 'none' }).length, 0);
+// open policy + list order
+const G1 = '0a1b2c3d-1111-2222-3333-444455556666';
+assert.ok(L.guidsIn(`#view/Microsoft_Intune_Workflows/PolicySummaryBlade/policyId/${G1.toUpperCase()}/policyType~/...`).has(G1));
+assert.ok(L.guidsIn('#view/x/appId%2F' + G1).has(G1));
+assert.ok(L.guidsIn(`#view/Microsoft_Intune_Enrollment/EnrollmentStatusPageMenuBlade/~/overview/profileId/${G1}_DefaultWindows10EnrollmentCompletionPageConfiguration`).has(`${G1}_defaultwindows10enrollmentcompletionpageconfiguration`));
+const its = ['a', 'b', 'c', 'd', 'e'].map(key => ({ key }));
+assert.deepStrictEqual(L.orderItems(its, new Set(['d', 'b']), 'e').map(x => x.key), ['e', 'd', 'b', 'a', 'c']);
+assert.deepStrictEqual(L.orderItems(its, new Set(), null).map(x => x.key), ['a', 'b', 'c', 'd', 'e']);
+// token choice: Intune scopes only
+const jwt = scp => 'h.' + Buffer.from(JSON.stringify({ scp, tid: G1 })).toString('base64url') + '.s';
+assert.strictEqual(L.isIntuneToken(jwt('User.Read DeviceManagementConfiguration.ReadWrite.All')), true);
+assert.strictEqual(L.isIntuneToken(jwt('User.Read openid profile')), false);
+assert.strictEqual(L.isIntuneToken('garbage'), false);
+console.log('as-built: new kinds checks passed');

@@ -75,7 +75,7 @@ Clic sur l'icône de l'extension. À gauche, la colonne **🌐 FR / 🌐 EN** ba
 
 | Paramètres (⚙), fonctions | Paramètres (⚙), suite |
 |---|---|
-| ![Paramètres : bascules des fonctions (dont Raccourci PIM), Settings Explainer et OpenIntuneBaseline en retrait sous Setting Inspector](docs/img/readme/fr/08-menu-parametres.jpg) | ![Paramètres : Langue 1 et Langue 2 de la console, délai de la carte de paramètre, positions par défaut](docs/img/readme/fr/09-menu-parametres-suite.jpg) |
+| ![Paramètres : positions par défaut en tête, puis bascules des fonctions (dont Raccourci PIM), Settings Explainer et OpenIntuneBaseline en retrait sous Setting Inspector](docs/img/readme/fr/08-menu-parametres.jpg) | ![Paramètres : Langue 1 et Langue 2 de la console, délai de la carte de paramètre, Change Snapshot (ticket PROD / non-prod, suppression automatique, durée de conservation)](docs/img/readme/fr/09-menu-parametres-suite.jpg) |
 
 *Menu rendu avec le code réel de `popup.html` et des tenants fictifs (Contoso) : la page de l'extension ne peut pas être capturée par l'outil d'automatisation.*
 
@@ -83,10 +83,11 @@ Clic sur l'icône de l'extension. À gauche, la colonne **🌐 FR / 🌐 EN** ba
 - **Bouton bleu « Recharger l'onglet du portail pour appliquer (fonctions et langue) ↻ »** : apparaît après une activation, une désactivation ou un changement de langue.
 - **📋** (dans la pastille Change Snapshot) : ouvre le journal des modifications.
 - **⚙ Paramètres** (s'ouvrent sous les pastilles) :
+  - **Affichage** : **Positions par défaut** replace les boutons et panneaux en bas à gauche.
   - **Fonctions** : une case par fonction, avec sa description. Une fonction décochée n'injecte plus aucun script. **Settings Explainer** et **OpenIntuneBaseline** apparaissent en retrait sous Setting Inspector : ce sont les trois sections de la même carte de paramètre, chacune activable seule, sans lien entre elles.
   - **Set Tenant Language · langues prédéfinies** : Langue 1 et Langue 2 (langue de la console et format régional), appliquées par les deux boutons 🌐 de la colonne de gauche.
   - **Carte de paramètre** : délai avant fermeture de la carte (Setting Inspector, Settings Explainer, OpenIntuneBaseline), en secondes (2 par défaut, de 0 à 60), pris en compte sans recharger le portail.
-  - **Affichage** : **Positions par défaut** replace les boutons et panneaux en bas à gauche.
+  - **Change Snapshot** : demande de ticket sur les tenants PROD / non-prod, suppression automatique des anciennes entrées et durée de conservation (voir [Change Snapshot](#change-snapshot)).
 - **Tenant Guard · tenants référencés** (vue principale) : correspondance, étiquette, couleur, PROD.
   - **Exporter (JSON)** : télécharge `tenant-guard-AAAA-MM-JJ.json` (`{ rules: [{ match, label, color, prod }], customColors: ["#rrggbb"] }`).
   - **Couleur** : voir [Tenant Guard](#tenant-guard).
@@ -132,8 +133,12 @@ Bouton **As-Built** en bas à gauche. Le panneau liste les stratégies et applic
 |---|---|
 | ![Panneau As-Built : recherche, filtres, liste des stratégies, boutons d'export](docs/img/readme/fr/02-as-built-panneau.jpg) | ![As-Built avec trois stratégies cochées](docs/img/readme/fr/03-as-built-selection.jpg) |
 
-- Sources : catalogue de paramètres, profils de configuration, conformité, ADMX, applications, scripts PowerShell, scripts shell macOS, remédiations.
+- Sources : catalogue de paramètres, profils de configuration, conformité, ADMX, applications, scripts PowerShell, scripts shell macOS, remédiations, profils Autopilot, appareils Autopilot, inscription (page d'état d'inscription ESP, restrictions, Windows Hello...), profils Apple ADE (DEP), profils d'inscription Android Enterprise / AOSP, personnalisation du tenant (profils de marque), rôles Intune (RBAC, avec leurs affectations : membres, étendue, balises), balises d'étendue, inscription automatique MDM Windows (Entra > Mobilité).
 - Filtres : recherche par nom, type, OS. La case en tête de liste coche ou décoche tout ce qui est affiché.
+- **Stratégie ouverte** : celle affichée dans le portail est placée en tête de liste, sans être cochée. Les éléments cochés remontent ensuite dans l'ordre où ils ont été cochés ; la liste ne défile pas quand un élément remonte.
+- **Appareils Autopilot** : un seul élément pour tout l'inventaire, exporté en plus en CSV (`autopilot-devices-<date>.csv`, séparateur `;`) : numéro de série, fabricant, modèle, group tag, utilisateur, état du profil et de l'inscription. **Le hachage matériel (HWID) n'est pas inclus** : Graph ne le renvoie pas pour un appareil déjà inscrit. Le fichier n'est donc pas réimportable dans Autopilot.
+- **Secrets masqués** : jeton d'inscription Android et contenu du QR code, mot de passe de compte Surface Hub, clé de produit. Les images (logos, QR code) ne sont pas exportées.
+- Inscription automatique MDM : lue dans Entra (`/policies/mobileDeviceManagementPolicies`), qui demande l'autorisation `Policy.Read.All`. Si le jeton du portail Intune ne la porte pas, la source s'affiche en erreur et le reste de la liste fonctionne.
 - Mode d'export : **One policy per file** (défaut) ou toutes les stratégies dans un seul fichier. **Copy MD** copie toujours un seul bloc Markdown.
 - **Export scripts** (coché par défaut) : télécharge à côté du document, décodés depuis le Base64 de Graph (`.ps1` / `.sh`), les scripts, remédiations (détection + correction) et scripts PowerShell de détection / exigence des applications Win32.
 - Le fichier `.intunewin` n'est pas exportable : Graph n'expose aucune URL de téléchargement d'un contenu d'application publié (l'URI de stockage n'existe que pendant l'upload, et le contenu est chiffré).

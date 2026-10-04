@@ -1,6 +1,10 @@
 // Pure helpers shared by page.js (MAIN world) and test.js. Wrapped to avoid clobbering portal globals.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 (() => {
   const GUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+  // Enrollment configurations: "<guid>_DefaultWindows10EnrollmentCompletionPageConfiguration" (tested 2026-10-04).
+  const ID = `${GUID}(?:_[A-Za-z0-9]+)?`;
+  // GUID part in lower case, suffix kept as is (Graph answers 404 to a lower-cased suffix).
+  const normId = id => id.replace(new RegExp(`^${GUID}`, 'i'), g => g.toLowerCase());
 
   // Graph collections we can analyse. `peers` = families compared for overlaps. Labels: assignmentLens.family.<key> in i18n.js.
   const CONFIG = ['configurationPolicies', 'deviceConfigurations', 'groupPolicyConfigurations'];
@@ -10,11 +14,13 @@
     groupPolicyConfigurations: { path: 'deviceManagement/groupPolicyConfigurations', peers: CONFIG },
     deviceCompliancePolicies: { path: 'deviceManagement/deviceCompliancePolicies', peers: ['deviceCompliancePolicies'] },
     mobileApps: { path: 'deviceAppManagement/mobileApps', peers: ['mobileApps'] },
+    windowsAutopilotDeploymentProfiles: { path: 'deviceManagement/windowsAutopilotDeploymentProfiles', peers: ['windowsAutopilotDeploymentProfiles'] },
+    deviceEnrollmentConfigurations: { path: 'deviceManagement/deviceEnrollmentConfigurations', peers: ['deviceEnrollmentConfigurations'] },
   };
 
   // Matches absolute Graph URLs and the relative URLs found in $batch bodies; "/{id}" and "('{id}')" forms.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
   const REF = new RegExp(
-    `^(?:https://graph\\.microsoft\\.com)?/?(?:(?:beta|v1\\.0)/)?(?:deviceManagement|deviceAppManagement)/(${Object.keys(FAMILIES).join('|')})(?:/|\\(')(${GUID})(?:'\\))?(?=[/?#]|$)`,
+    `^(?:https://graph\\.microsoft\\.com)?/?(?:(?:beta|v1\\.0)/)?(?:deviceManagement|deviceAppManagement)/(${Object.keys(FAMILIES).join('|')})(?:/|\\(')(${ID})(?:'\\))?(?=[/?#]|$)`,
     'i');
 
   function parsePolicyRef(url) {
@@ -24,17 +30,23 @@
     const m = REF.exec(u);
     if (!m) return null;
     const family = Object.keys(FAMILIES).find(f => f.toLowerCase() === m[1].toLowerCase());
-    return { family, id: m[2].toLowerCase() };
+    return { family, id: normId(m[2]) };
   }
 
-  // Portal blade URL: ".../PolicySummaryBlade/policyId/{id}/..." or ".../appId/{id}/...". family null = unknown, probe Graph.
-  const HASH = new RegExp(`/(policyId|appId)/(${GUID})(?=[/?]|$)`, 'i');
+  // Portal blade URL: ".../PolicySummaryBlade/policyId/{id}/...", ".../appId/{id}/...", Autopilot ".../apProfileId/{id}",
+  // ESP ".../EnrollmentStatusPageMenuBlade/~/overview/profileId/{id}". family null = unknown, probe Graph.
+  const HASH = new RegExp(`/(policyId|appId|apProfileId|profileId)/(${ID})(?=[/?]|$)`, 'i');
   function parseHashRef(hash) {
     let h;
     try { h = decodeURIComponent(String(hash || '')); } catch { h = String(hash || ''); }
     const m = HASH.exec(h);
     if (!m) return null;
-    return { family: /^appId$/i.test(m[1]) ? 'mobileApps' : null, id: m[2].toLowerCase() };
+    const key = m[1].toLowerCase(), id = normId(m[2]);
+    // appId is an app only in the Apps blades: the MDM auto-enrollment blade carries Intune's own appId (0000000a-...).
+    if (key === 'appid') return /Microsoft_Intune_Apps/i.test(h) ? { family: 'mobileApps', id } : null;
+    if (key === 'approfileid') return { family: 'windowsAutopilotDeploymentProfiles', id };
+    if (key === 'profileid') return /Enrollment/i.test(h) ? { family: 'deviceEnrollmentConfigurations', id } : null;
+    return { family: null, id };
   }
 
   // The shell hands tokens to its extension Web Worker over MessagePort. Returns "Bearer <jwt>" for a Graph token found

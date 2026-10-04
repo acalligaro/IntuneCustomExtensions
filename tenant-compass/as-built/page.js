@@ -15,8 +15,9 @@
 
   function grab(url, auth) {
     try {
-      if (auth && /^Bearer\s+\S/i.test(auth) && new URL(url, location.href).origin === 'https://graph.microsoft.com')
-        token = auth.replace(/^Bearer\s+/i, '');
+      if (!auth || !/^Bearer\s+\S/i.test(auth) || new URL(url, location.href).origin !== 'https://graph.microsoft.com') return;
+      const t = auth.replace(/^Bearer\s+/i, '');
+      if (L.isIntuneToken(t)) token = t; // other apps' Graph tokens (no Intune scope) would answer 403 everywhere
     } catch {}
   }
 
@@ -139,11 +140,32 @@
     ['ps', '/deviceManagement/deviceManagementScripts?$select=id,displayName,description,lastModifiedDateTime'],
     ['sh', '/deviceManagement/deviceShellScripts?$select=id,displayName,description,lastModifiedDateTime'],
     ['rem', '/deviceManagement/deviceHealthScripts?$select=id,displayName,description,lastModifiedDateTime'],
+    ['ap', '/deviceManagement/windowsAutopilotDeploymentProfiles'],
+    // One item for the whole device list (can hold thousands of devices): read only when exported.
+    // No probe call: this endpoint answers 500 to $select / $top (tested 2026-10-04).
+    ['apdev', async () => [{ id: 'all', displayName: T('asBuilt.src.apdev') }], 'local'], // no Graph call: never proves the token works
+    ['enr', '/deviceManagement/deviceEnrollmentConfigurations'],
+    // ADE profiles live under each Apple enrollment program token.
+    ['dep', async () => (await pool(await all('/deviceManagement/depOnboardingSettings?$select=id'), 3, t =>
+      all(`/deviceManagement/depOnboardingSettings/${enc(t.id)}/enrollmentProfiles`).then(ps => ps.map(p => ({ ...p, parent: t.id }))))).flat()],
+    ['android', '/deviceManagement/androidDeviceOwnerEnrollmentProfiles'],
+    ['brand', '/deviceManagement/intuneBrandingProfiles'],
+    ['role', '/deviceManagement/roleDefinitions'],
+    ['tag', '/deviceManagement/roleScopeTags'],
+    // Entra > Mobility (MDM and WIP). Needs Policy.Read.All in the portal token: otherwise listed as a source error.
+    ['mdm', '/policies/mobileDeviceManagementPolicies?$expand=includedGroups'],
   ];
-  const srcLabel = kind => T('asBuilt.src.' + kind); // SOURCES = [kind, list path]
+  const srcLabel = kind => T('asBuilt.src.' + kind); // SOURCES = [kind, list path or loader]
   const BASE = { sc: '/deviceManagement/configurationPolicies', dc: '/deviceManagement/deviceConfigurations', comp: '/deviceManagement/deviceCompliancePolicies',
     admx: '/deviceManagement/groupPolicyConfigurations', app: '/deviceAppManagement/mobileApps', ps: '/deviceManagement/deviceManagementScripts',
-    sh: '/deviceManagement/deviceShellScripts', rem: '/deviceManagement/deviceHealthScripts' };
+    sh: '/deviceManagement/deviceShellScripts', rem: '/deviceManagement/deviceHealthScripts', ap: '/deviceManagement/windowsAutopilotDeploymentProfiles',
+    enr: '/deviceManagement/deviceEnrollmentConfigurations', android: '/deviceManagement/androidDeviceOwnerEnrollmentProfiles',
+    brand: '/deviceManagement/intuneBrandingProfiles', role: '/deviceManagement/roleDefinitions', tag: '/deviceManagement/roleScopeTags',
+    mdm: '/policies/mobileDeviceManagementPolicies' };
+  const pathOf = p => p.kind === 'dep' ? `/deviceManagement/depOnboardingSettings/${enc(p.parent)}/enrollmentProfiles/${enc(p.id)}` : `${BASE[p.kind]}/${enc(p.id)}`;
+  // No assignments endpoint: ADE and Android profiles are tied to tokens, roles are assigned through roleAssignments, MDM scope sits on the policy.
+  const NO_ASSIGNMENTS = new Set(['apdev', 'dep', 'android', 'role', 'mdm']);
+  const groupName = id => once('g:' + id, () => api(`/groups/${enc(id)}?$select=id,displayName`).then(g => g.displayName, () => ''));
 
   async function categories(ids) {
     const out = {};
@@ -159,7 +181,29 @@
 
   // Raw Graph objects (kept for the JSON export) + table rows for the documents.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
   async function configOf(p) {
-    const path = `${BASE[p.kind]}/${enc(p.id)}`;
+    const path = pathOf(p);
+    if (p.kind === 'apdev') {
+      const devices = await all('/deviceManagement/windowsAutopilotDeviceIdentities');
+      for (const d of devices) { delete d.productKey; delete d.deviceAccountPassword; }
+      return { raw: { policy: { id: 'all', count: devices.length }, devices }, rows: L.autopilotRows(devices) };
+    }
+    if (p.kind === 'role') {
+      const [policy, refs, tags] = await Promise.all([api(path), all(`${path}/roleAssignments`),
+        once('tags', () => all('/deviceManagement/roleScopeTags?$select=id,displayName').catch(() => []))]);
+      const roleAssignments = await pool(refs, 3, a => api(`/deviceManagement/roleAssignments/${enc(a.id)}`).catch(() => a));
+      const ids = [...new Set(roleAssignments.flatMap(a => [...(a.members || []), ...(a.resourceScopes || [])]))];
+      const groups = Object.fromEntries(await pool(ids, 4, async id => [id, await groupName(id)]));
+      const { rolePermissions, permissions, ...props } = policy;
+      const actions = (rolePermissions || []).flatMap(r => (r.resourceActions || []).flatMap(x => x.allowedResourceActions || []));
+      return { raw: { policy, roleAssignments },
+        rows: [...L.propertyRows(props), ...actions.map(a => ({ path: T('asBuilt.role.permissions'), name: a, value: T('asBuilt.value.yes') })),
+          ...L.roleAssignmentRows(roleAssignments, Object.fromEntries(Object.entries(groups).filter(([, n]) => n)), Object.fromEntries(tags.map(t => [t.id, t.displayName])))] };
+    }
+    if (p.kind === 'mdm') {
+      const policy = await api(`${path}?$expand=includedGroups`);
+      const { includedGroups, ...props } = policy;
+      return { raw: { policy }, rows: L.propertyRows(props) };
+    }
     if (p.kind === 'sc') {
       const [policy, settings] = await Promise.all([api(path), all(`${path}/settings?$expand=settingDefinitions`)]);
       const defs = settings.flatMap(s => s.settingDefinitions || []);
@@ -171,16 +215,23 @@
       return { raw: { policy, definitionValues }, rows: L.admxRows(definitionValues) };
     }
     const policy = await api(p.kind === 'comp' ? `${path}?$expand=scheduledActionsForRule($expand=scheduledActionConfigurations)` : path);
-    delete policy.largeIcon; // app icon, base64 noise in the JSON
+    for (const k of L.IMAGE_KEYS) delete policy[k]; // app icon, logos, QR code: base64 noise in the JSON
     const { scheduledActionsForRule, ...props } = policy;
+    // ESP blocking apps: names instead of ids (the JSON keeps the ids).
+    if (Array.isArray(props.selectedMobileAppIds)) {
+      const apps = new Map((items || []).filter(i => i.kind === 'app').map(i => [i.id, i.name]));
+      props.selectedMobileAppIds = props.selectedMobileAppIds.map(id => apps.get(id) || id);
+    }
     return { raw: { policy }, rows: L.propertyRows(props) };
   }
 
-  async function assignmentsOf(p) {
-    const assignments = await all(`${BASE[p.kind]}/${enc(p.id)}/assignments`);
+  async function assignmentsOf(p, raw) {
+    if (p.kind === 'mdm') return { raw: {}, rows: L.mdmAssignmentRows(raw.policy) };
+    if (NO_ASSIGNMENTS.has(p.kind)) return { raw: {}, rows: [] };
+    const assignments = await all(`${pathOf(p)}/assignments`);
     const groups = {}, filters = {};
     await pool(assignments.map(a => a.target || {}), 4, async t => {
-      if (t.groupId) groups[t.groupId] = await once('g:' + t.groupId, () => api(`/groups/${enc(t.groupId)}?$select=id,displayName`).then(g => g.displayName, () => ''));
+      if (t.groupId) groups[t.groupId] = await groupName(t.groupId);
       const f = t.deviceAndAppManagementAssignmentFilterId;
       if (f) filters[f] = await once('f:' + f, () => api(`/deviceManagement/assignmentFilters/${enc(f)}`).catch(() => ({ id: f })));
     });
@@ -194,7 +245,8 @@
   function detail(p) {
     return once('d:' + p.key, async () => {
       try {
-        const [c, a] = await Promise.all([configOf(p), assignmentsOf(p)]);
+        const c = await configOf(p);
+        const a = await assignmentsOf(p, c.raw);
         return { ...p, settings: c.rows, assignments: a.rows, raw: { ...c.raw, ...a.raw } };
       } catch (err) {
         memo.delete('d:' + p.key);
@@ -259,8 +311,8 @@
     .status { color: #605e5c; min-height: 18px; font-size: 12px; }
   `);
 
-  let items = null, panel = null;
-  const checked = new Set();
+  let items = null, panel = null, current = null, openTimer = 0;
+  const checked = new Set(); // insertion order = check order (list order, see L.orderItems)
   const ui = {};
 
   function mount() {
@@ -279,7 +331,7 @@
   const openedExclusive = window.__tenantCompassExclusive ? window.__tenantCompassExclusive('as-built', () => { if (panel) toggle(); }) : () => {};
 
   function toggle() {
-    if (panel) { panel.remove(); panel = null; return; }
+    if (panel) { panel.remove(); panel = null; clearInterval(openTimer); return; }
     ui.search = el('input', { type: 'search', placeholder: T('asBuilt.ui.search'), oninput: renderList });
     ui.type = el('select', { onchange: renderList }, el('option', { value: '', textContent: T('asBuilt.ui.allTypes') }),
       ...SOURCES.map(([k]) => el('option', { value: k, textContent: srcLabel(k) })));
@@ -312,7 +364,20 @@
     ui.root.append(panel);
     openedExclusive();
     if (window.__tenantCompassDrag) window.__tenantCompassDrag(panel, head, 'as-built-panel');
-    if (items) { fillOs(); renderList(); } else load();
+    if (items) { fillOs(); syncOpen(true); } else load();
+    // The shell changes blades with history.pushState (no hashchange event): poll while the panel is open.
+    openTimer = setInterval(() => syncOpen(false), 1000);
+  }
+
+  // Policy open in the portal: shown first, not checked (the user checks it if wanted).
+  function syncOpen(force) {
+    if (!items) return;
+    const ids = L.guidsIn(location.hash);
+    const hit = ids.size ? items.find(i => ids.has(String(i.id).toLowerCase())) : null;
+    const key = hit ? hit.key : null;
+    if (key === current && !force) return;
+    current = key;
+    renderList();
   }
 
   const status = t => { if (ui.status) ui.status.textContent = t; };
@@ -320,13 +385,18 @@
   async function load() {
     status(T('asBuilt.status.loading'));
     const errors = [];
-    const res = await Promise.all(SOURCES.map(([kind, path]) =>
-      all(path).then(list => list.map(raw => ({ ...L.policySummary(kind, raw), key: kind + ':' + raw.id })),
-        err => { errors.push(T('asBuilt.err.source', { label: srcLabel(kind), msg: err.message })); return []; })));
-    if (errors.length === SOURCES.length) { status(errors[0]); return; } // keep items null so reopening retries
+    const res = await Promise.all(SOURCES.map(([kind, src]) =>
+      (typeof src === 'function' ? src() : all(src)).then(list => list.map(raw => ({ ...L.policySummary(kind, raw), key: kind + ':' + raw.id, ...(raw.parent ? { parent: raw.parent } : {}) })),
+        err => {
+          // The Intune portal token has no Policy.Read.All (tested 2026-10-04): say so instead of Graph's raw 403.
+          const msg = kind === 'mdm' && /^Graph 403/.test(err.message) ? T('asBuilt.err.mdmScope') : err.message;
+          errors.push(T('asBuilt.err.source', { label: srcLabel(kind), msg }));
+          return [];
+        })));
+    if (errors.length === SOURCES.filter(s => s[2] !== 'local').length) { status(errors[0]); return; } // keep items null so reopening retries
     items = res.flat().sort((a, b) => String(a.name).localeCompare(String(b.name), 'fr'));
     fillOs();
-    renderList();
+    syncOpen(true);
     status(T('asBuilt.status.count', { n: items.length }) + (errors.length ? ` · ${errors.join(' · ')}` : ''));
   }
 
@@ -337,15 +407,26 @@
 
   function visible() {
     const q = ui.search.value.trim().toLowerCase(), k = ui.type.value, os = ui.os.value;
-    return (items || []).filter(i => (!k || i.kind === k) && (!os || L.platformsOf(i).includes(os)) && (!q || String(i.name).toLowerCase().includes(q)));
+    return L.orderItems((items || []).filter(i => (!k || i.kind === k) && (!os || L.platformsOf(i).includes(os)) && (!q || String(i.name).toLowerCase().includes(q))), checked, current);
   }
 
-  function renderList() {
+  // moved: key of the row just (un)checked. The first visible row other than it stays at the same place on screen,
+  // so rows moving to the top never slide the list under the pointer.
+  function renderList(moved) {
     if (!items) return;
-    ui.list.replaceChildren(...visible().map(i => el('label', { className: 'row' },
-      el('input', { type: 'checkbox', checked: checked.has(i.key), onchange: e => e.target.checked ? checked.add(i.key) : checked.delete(i.key) }),
-      el('span', {}, i.name || T('asBuilt.ui.unnamed'), el('small', {}, i.type, ...L.platformsOf(i).map(o => el('span', { className: 'chip', textContent: o })),
-        ...(i.license ? [el('span', { className: 'chip lic', textContent: T('asBuilt.ui.licenseChip'), title: i.license })] : []))))));
+    const box = ui.list.getBoundingClientRect();
+    const anchor = [...ui.list.children].find(r => r.dataset.key !== moved && r.getBoundingClientRect().bottom > box.top);
+    const key = anchor?.dataset.key, offset = anchor ? anchor.getBoundingClientRect().top - box.top : 0;
+    ui.list.replaceChildren(...visible().map(i => {
+      const row = el('label', { className: 'row' },
+        el('input', { type: 'checkbox', checked: checked.has(i.key), onchange: e => { e.target.checked ? checked.add(i.key) : checked.delete(i.key); renderList(i.key); } }),
+        el('span', {}, i.name || T('asBuilt.ui.unnamed'), el('small', {}, i.type, ...L.platformsOf(i).map(o => el('span', { className: 'chip', textContent: o })),
+          ...(i.license ? [el('span', { className: 'chip lic', textContent: T('asBuilt.ui.licenseChip'), title: i.license })] : []))));
+      row.dataset.key = i.key; // dataset is read-only: not settable through el()'s Object.assign
+      return row;
+    }));
+    const again = key && [...ui.list.children].find(r => r.dataset.key === key);
+    if (again) ui.list.scrollTop += again.getBoundingClientRect().top - box.top - offset;
   }
 
   // ponytail: spacing so Chrome doesn't drop rapid-fire downloads; zip if >50 files hurts⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
@@ -353,7 +434,7 @@
   const progress = (done, total) => { ui.progress.classList.add('on'); ui.fill.style.width = `${Math.round((done / total) * 100)}%`; };
 
   async function run(mode) {
-    const sel = (items || []).filter(i => checked.has(i.key));
+    const sel = L.orderItems((items || []).filter(i => checked.has(i.key)), checked, current); // same order as the list
     if (!sel.length) return status(T('asBuilt.status.pickOne'));
     const split = mode !== 'copy' && ui.modes.querySelector('input:checked').value === 'one';
     ui.buttons.forEach(b => (b.disabled = true));
@@ -366,6 +447,10 @@
       const scripts = mode !== 'copy' && ui.scripts.checked
         ? policies.flatMap(p => L.scriptFiles(p.kind, p.raw?.policy).map(f => [L.fileName(p.name + f.suffix, f.ext, used), f.text]))
         : [];
+      const stampDay = new Date().toISOString().slice(0, 10);
+      // Autopilot devices: always a CSV next to the document (Excel FR: ";" and UTF-8 BOM).
+      if (mode !== 'copy') for (const p of policies) if (p.kind === 'apdev' && p.raw?.devices)
+        scripts.push([L.fileName(`autopilot-devices-${stampDay}`, 'csv', used), '\ufeff' + L.autopilotCsv(p.raw.devices)]);
       const stamp = new Date().toISOString().slice(0, 10);
       const meta = { exportedAt: new Date().toISOString(), tenantId: (token && L.jwtTid(token)) || workerTid };
       const FORMATS = {
@@ -382,7 +467,7 @@
           await pause();
         }
       }
-      for (const [name, text] of scripts) { download(name, 'text/plain;charset=utf-8', text); await pause(); }
+      for (const [name, text] of scripts) { download(name, name.endsWith('.csv') ? 'text/csv;charset=utf-8' : 'text/plain;charset=utf-8', text); await pause(); }
       progress(total, total);
       status(T('asBuilt.status.exported', { n: policies.length }) + (mode === 'copy' ? T('asBuilt.status.toClipboard') : split ? T('asBuilt.status.toFiles', { n: policies.length }) : T('asBuilt.status.toOneFile')) + (scripts.length ? T('asBuilt.status.scripts', { n: scripts.length }) : ''));
     } catch (err) {

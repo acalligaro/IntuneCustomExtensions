@@ -75,7 +75,7 @@ Click the extension icon. On the left, the **🌐 FR / 🌐 EN** column switches
 
 | Settings (⚙), features | Settings (⚙), continued |
 |---|---|
-| ![Settings: feature toggles (including PIM shortcut), Settings Explainer and OpenIntuneBaseline indented under Setting Inspector](docs/img/readme/en/08-menu-parametres.jpg) | ![Settings: console Language 1 and Language 2, setting card delay, reset positions](docs/img/readme/en/09-menu-parametres-suite.jpg) |
+| ![Settings: reset positions first, then feature toggles (including PIM shortcut), Settings Explainer and OpenIntuneBaseline indented under Setting Inspector](docs/img/readme/en/08-menu-parametres.jpg) | ![Settings: console Language 1 and Language 2, setting card delay, Change Snapshot (PROD / non-prod ticket, automatic deletion, retention)](docs/img/readme/en/09-menu-parametres-suite.jpg) |
 
 *Menu rendered with the actual `popup.html` code and fictitious tenants (Contoso): the extension page cannot be captured by the automation tool.*
 
@@ -83,10 +83,11 @@ Click the extension icon. On the left, the **🌐 FR / 🌐 EN** column switches
 - **Blue "Reload the portal tab to apply (features and language) ↻" button**: appears after turning a feature on or off, or changing the language.
 - **📋** (in the Change Snapshot pill): opens the change log.
 - **⚙ Settings** (open under the pills):
+  - **Display**: **Reset positions** moves the buttons and panels back to the bottom left.
   - **Features**: one checkbox per feature, with its description. A cleared feature injects no script at all. **Settings Explainer** and **OpenIntuneBaseline** are indented under Setting Inspector: they are the three sections of the same setting card, each usable on its own, independent of each other.
   - **Set Tenant Language · preset languages**: Language 1 and Language 2 (console language and regional format), applied by the two 🌐 buttons of the left column.
   - **Setting card**: card close delay (Setting Inspector, Settings Explainer, OpenIntuneBaseline), in seconds (2 by default, 0 to 60), applied without reloading the portal.
-  - **Display**: **Reset positions** moves the buttons and panels back to the bottom left.
+  - **Change Snapshot**: ticket request on PROD / non-prod tenants, automatic deletion of old entries and retention (see [Change Snapshot](#change-snapshot)).
 - **Tenant Guard · known tenants** (main view): match, label, color, PROD.
   - **Export (JSON)**: downloads `tenant-guard-YYYY-MM-DD.json` (`{ rules: [{ match, label, color, prod }], customColors: ["#rrggbb"] }`).
   - **Color**: see [Tenant Guard](#tenant-guard).
@@ -130,8 +131,12 @@ Tenant detection, by priority: URL (`tid=`, `tenantId=`, `ctid=`, `#@domain`), d
 |---|---|
 | ![As-Built panel: search, filters, policy list, export buttons](docs/img/readme/en/02-as-built-panneau.jpg) | ![As-Built with three policies checked](docs/img/readme/en/03-as-built-selection.jpg) |
 
-- Sources: settings catalog, configuration profiles, compliance, ADMX, apps, PowerShell scripts, macOS shell scripts, remediations.
+- Sources: settings catalog, configuration profiles, compliance, ADMX, apps, PowerShell scripts, macOS shell scripts, remediations, Autopilot profiles, Autopilot devices, enrollment (Enrollment Status Page, restrictions, Windows Hello...), Apple ADE (DEP) profiles, Android Enterprise / AOSP enrollment profiles, tenant customization (branding profiles), Intune roles (RBAC, with their assignments: members, scope, tags), scope tags, Windows MDM automatic enrollment (Entra > Mobility).
 - Filters: search by name, type, OS. The checkbox at the top of the list checks or clears everything shown.
+- **Open policy**: the one shown in the portal is placed at the top of the list, without being checked. Checked items then move up in the order they were checked; the list does not scroll when an item moves up.
+- **Autopilot devices**: one item for the whole inventory, also exported as CSV (`autopilot-devices-<date>.csv`, `;` separator): serial number, manufacturer, model, group tag, user, profile and enrollment state. **The hardware hash (HWID) is not included**: Graph does not return it for a registered device, so the file cannot be imported back into Autopilot.
+- **Masked secrets**: Android enrollment token and QR code content, Surface Hub account password, product key. Images (logos, QR code) are not exported.
+- MDM automatic enrollment: read from Entra (`/policies/mobileDeviceManagementPolicies`), which needs the `Policy.Read.All` permission. If the Intune portal token does not carry it, the source shows an error and the rest of the list works.
 - Export mode: **One policy per file** (default) or all policies in a single file. **Copy MD** always copies a single Markdown block.
 - **Export scripts** (checked by default): downloads next to the document, decoded from Graph's Base64 (`.ps1` / `.sh`), the scripts, remediations (detection + remediation) and the PowerShell detection / requirement scripts of Win32 apps.
 - `.intunewin` files cannot be exported: Graph exposes no download URL for published app content (the storage URI only exists during upload, and the content is encrypted).

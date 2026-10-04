@@ -33,7 +33,7 @@
 
   // ponytail: prefix heuristic on the derived type name, extend if a new platform family shows up as "?".
   function platformFromType(name) {
-    const n = name.toLowerCase().replace(/^managed/, '');
+    const n = name.toLowerCase().replace(/^(managed|dep)/, ''); // depIOSEnrollmentProfile, depMacOSEnrollmentProfile
     if (n.startsWith('win') || n === 'officesuiteapp' || n === 'microsoftstoreforbusinessapp') return 'Windows';
     if (n.startsWith('ios')) return 'iOS/iPadOS';
     if (n.startsWith('macos')) return 'macOS';
@@ -47,9 +47,30 @@
   const scriptType = k => ({ ps: () => T('asBuilt.type.ps', 'Script PowerShell'), sh: () => T('asBuilt.type.sh', 'Script shell'), rem: () => T('asBuilt.type.rem', 'Remédiation') })[k]();
 
   // kind: 'sc' Settings Catalog, 'dc' deviceConfigurations, 'comp' compliance, 'admx' groupPolicyConfigurations,
-  // 'app' mobileApps, 'ps' deviceManagementScripts, 'sh' deviceShellScripts, 'rem' deviceHealthScripts.
+  // 'app' mobileApps, 'ps' deviceManagementScripts, 'sh' deviceShellScripts, 'rem' deviceHealthScripts,
+  // 'ap' Autopilot deployment profiles, 'apdev' Autopilot devices (one item for all), 'enr' deviceEnrollmentConfigurations (ESP...),
+  // 'dep' Apple ADE (DEP) enrollment profiles, 'android' Android Enterprise / AOSP enrollment profiles, 'brand' Intune branding profiles
+  // (Tenant administration > Customization), 'role' Intune role definitions, 'tag' scope tags, 'mdm' Windows MDM auto-enrollment (Entra mobility).
   function policySummary(kind, raw) {
     const base = { kind, id: raw.id, description: raw.description || '', modified: raw.lastModifiedDateTime || '' };
+    const name = raw.displayName || raw.profileName || raw.name;
+    if (kind === 'ap') return { ...base, name, type: T('asBuilt.type.ap', 'Profil de déploiement Autopilot'), platform: 'Windows' };
+    if (kind === 'apdev') return { ...base, name, type: T('asBuilt.type.apdev', 'Appareils Autopilot (inventaire, CSV)'), platform: 'Windows' };
+    if (kind === 'enr') {
+      const t = odataName(raw);
+      const esp = t === 'windows10EnrollmentCompletionPageConfiguration';
+      const os = platformFromType(t);
+      return { ...base, name, platform: os === '?' ? '' : os, // device limit, restrictions, WHfB: every platform
+        type: esp ? T('asBuilt.type.esp', "Page d'état d'inscription (ESP)") : T('asBuilt.type.enr', "Configuration d'inscription") + (t ? ` (${t})` : '') };
+    }
+    if (kind === 'dep') return { ...base, name, type: T('asBuilt.type.dep', "Profil d'inscription Apple (ADE)"), platform: platformFromType(odataName(raw)) };
+    if (kind === 'android') return { ...base, name, type: T('asBuilt.type.android', "Profil d'inscription Android") + (raw.enrollmentMode ? ` (${raw.enrollmentMode})` : ''),
+      platform: /aosp/i.test(raw.enrollmentMode || '') ? 'Android (AOSP)' : 'Android Enterprise' };
+    if (kind === 'brand') return { ...base, name, type: T('asBuilt.type.brand', 'Personnalisation (profil de marque)'), platform: '' };
+    if (kind === 'role') return { ...base, name, platform: '',
+      type: raw.isBuiltIn ? T('asBuilt.type.roleBuiltIn', 'Rôle Intune (intégré)') : T('asBuilt.type.role', 'Rôle Intune (personnalisé)') };
+    if (kind === 'tag') return { ...base, name, type: T('asBuilt.type.tag', "Balise d'étendue"), platform: '' };
+    if (kind === 'mdm') return { ...base, name, type: T('asBuilt.type.mdm', 'Inscription automatique MDM (Entra)'), platform: 'Windows' };
     if (kind === 'sc') {
       const tpl = raw.templateReference?.templateDisplayName;
       return { ...base, name: raw.name, type: tpl ? T('asBuilt.type.scTpl', 'Catalogue de paramètres (modèle {tpl})', { tpl }) : T('asBuilt.type.sc', 'Catalogue de paramètres'),
@@ -135,6 +156,10 @@
   // ---------- templates (deviceConfigurations / compliance) ----------
 
   const SKIP = new Set(['id', 'displayName', 'description', 'createdDateTime', 'lastModifiedDateTime', 'version', 'roleScopeTagIds', 'supportsScopeTags', 'deviceManagementApplicabilityRuleOsEdition', 'deviceManagementApplicabilityRuleOsVersion', 'deviceManagementApplicabilityRuleDeviceMode', 'largeIcon']);
+  // Images (base64), removed from the policy before export by page.js: branding logos, Android QR code.
+  const IMAGE_KEYS = ['largeIcon', 'themeColorLogo', 'lightBackgroundLogo', 'landingPageCustomizedImage', 'qrCodeImage'];
+  // Values that grant access (Android enrollment token and its QR code content, Surface Hub password): masked everywhere.
+  const SECRET_KEYS = new Set(['tokenValue', 'qrCodeContent', 'deviceAccountPassword', 'productKey']);
   // Base64 script bodies: exported as separate files (scriptFiles), not dumped into the document.
   const SCRIPT_KEYS = new Set(['scriptContent', 'detectionScriptContent', 'remediationScriptContent']);
 
@@ -153,6 +178,7 @@
       if (v === null || v === '' || v === 'notConfigured' || (Array.isArray(v) && !v.length)) continue;
       const name = humanize(k);
       const sub = path ? `${path} > ${name}` : name;
+      if (SECRET_KEYS.has(k)) { rows.push({ path, name, value: mask() }); continue; }
       if (SCRIPT_KEYS.has(k)) { rows.push({ path, name, value: T('asBuilt.value.scriptFile', '(script exporté dans un fichier séparé)') }); continue; }
       if (Array.isArray(v) && typeof v[0] === 'object') v.forEach((o, i) => rows.push(...propertyRows(o, `${sub} [${i + 1}]`)));
       else if (Array.isArray(v)) rows.push({ path, name, value: v.join(', ') });
@@ -266,26 +292,36 @@ ${body}
 
   // ---------- JSON backup ----------
 
-  // tid claim of a JWT access token, '' if absent or malformed. The token itself is not kept or returned.
-  function jwtTid(token) {
+  function jwtClaims(token) {
     try {
       const b = String(token).split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-      const tid = JSON.parse(atob(b + '='.repeat((4 - b.length % 4) % 4))).tid;
-      return /^[0-9a-f-]{36}$/i.test(tid || '') ? tid : '';
-    } catch { return ''; }
+      return JSON.parse(atob(b + '='.repeat((4 - b.length % 4) % 4))) || {};
+    } catch { return {}; }
   }
+
+  // tid claim of a JWT access token, '' if absent or malformed. The token itself is not kept or returned.
+  function jwtTid(token) {
+    const tid = jwtClaims(token).tid;
+    return /^[0-9a-f-]{36}$/i.test(tid || '') ? tid : '';
+  }
+
+  // The portal also sends Graph tokens of other apps (no Intune scope): keep only one that can read Intune objects.
+  const isIntuneToken = token => /\bDeviceManagement(Configuration|Apps|ServiceConfig|ManagedDevices|RBAC)\.Read/.test(jwtClaims(token).scp || '');
 
   // Deep copy with secret values masked: Settings Catalog secret values and encrypted OMA-URI values.
   function maskSecrets(x) {
     if (Array.isArray(x)) return x.map(maskSecrets);
     if (!x || typeof x !== 'object') return x;
-    const out = Object.fromEntries(Object.entries(x).map(([k, v]) => [k, maskSecrets(v)]));
+    const out = Object.fromEntries(Object.entries(x).map(([k, v]) => [k, SECRET_KEYS.has(k) && v ? mask() : maskSecrets(v)]));
     if ('value' in out && (/SecretSettingValue/.test(out['@odata.type'] || '') || out.isEncrypted === true)) out.value = mask();
     return out;
   }
 
   const JSON_TYPES = { sc: 'settingsCatalog', dc: 'deviceConfiguration', comp: 'compliancePolicy', admx: 'groupPolicyConfiguration',
-    app: 'mobileApp', ps: 'deviceManagementScript', sh: 'deviceShellScript', rem: 'deviceHealthScript' };
+    app: 'mobileApp', ps: 'deviceManagementScript', sh: 'deviceShellScript', rem: 'deviceHealthScript',
+    ap: 'windowsAutopilotDeploymentProfile', apdev: 'windowsAutopilotDeviceIdentities', enr: 'deviceEnrollmentConfiguration',
+    dep: 'depEnrollmentProfile', android: 'androidDeviceOwnerEnrollmentProfile', brand: 'intuneBrandingProfile',
+    role: 'roleDefinition', tag: 'roleScopeTag', mdm: 'mobileDeviceManagementPolicy' };
 
   // ---------- script files ----------
 
@@ -335,12 +371,56 @@ ${body}
           policy: r.policy,
           ...(p.kind === 'sc' ? { settings: r.settings || [] } : {}),
           ...(p.kind === 'admx' ? { definitionValues: r.definitionValues || [] } : {}),
+          ...(p.kind === 'apdev' ? { devices: r.devices || [] } : {}),
+          ...(p.kind === 'role' ? { roleAssignments: r.roleAssignments || [] } : {}),
           assignments: r.assignments || [],
           filters: r.filters || [],
           groups: r.groups || [],
         });
       }),
     };
+  }
+
+  // ---------- Autopilot devices, RBAC, MDM auto-enrollment ----------
+
+  // Graph does not return the hardware hash of a registered device (no such property on windowsAutopilotDeviceIdentity):
+  // the export is an inventory, not a file to re-import.
+  const AP_COLS = [['serialNumber', 'Serial number'], ['manufacturer', 'Manufacturer'], ['model', 'Model'], ['groupTag', 'Group tag'],
+    ['userPrincipalName', 'Assigned user'], ['deploymentProfileAssignmentStatus', 'Profile status'], ['enrollmentState', 'Enrollment state'],
+    ['lastContactedDateTime', 'Last contacted'], ['purchaseOrderIdentifier', 'Purchase order'], ['azureAdDeviceId', 'Entra device ID']];
+
+  function autopilotRows(devices) {
+    return (devices || []).map(d => ({ path: '', name: d.serialNumber || d.id,
+      value: [[d.manufacturer, d.model].filter(Boolean).join(' '), d.groupTag && `tag ${d.groupTag}`, d.userPrincipalName, d.deploymentProfileAssignmentStatus, d.enrollmentState].filter(Boolean).join(' · ') }));
+  }
+
+  // ; separator, cells starting with = + - @ prefixed with ' (no formula when opened in Excel). Caller adds the UTF-8 BOM.
+  const csvCell = v => { let s = String(v ?? ''); if (/^[=+\-@]/.test(s)) s = "'" + s; return /[;"\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  function autopilotCsv(devices) {
+    return [AP_COLS.map(c => c[1]), ...(devices || []).map(d => AP_COLS.map(c => d[c[0]]))].map(r => r.map(csvCell).join(';')).join('\r\n');
+  }
+
+  // assignments: deviceAndAppManagementRoleAssignment objects (members / resourceScopes = group ids, scopeType, roleScopeTagIds).
+  function roleAssignmentRows(assignments, groupNames = {}, tagNames = {}) {
+    const names = ids => (ids || []).map(id => groupNames[id] || id).join(', ');
+    const rows = [];
+    for (const a of assignments || []) {
+      const path = T('asBuilt.role.assignment', 'Affectation') + ' > ' + (a.displayName || a.id);
+      rows.push({ path, name: T('asBuilt.role.members', 'Membres (groupes)'), value: names(a.members) });
+      const scope = a.scopeType && a.scopeType !== 'resourceScope' ? ({ allDevices: T('asBuilt.target.allDevices', 'Tous les appareils'),
+        allLicensedUsers: T('asBuilt.target.allUsers', 'Tous les utilisateurs'), allDevicesAndLicensedUsers: T('asBuilt.role.allBoth', 'Tous les appareils et utilisateurs') })[a.scopeType] || a.scopeType : names(a.resourceScopes);
+      rows.push({ path, name: T('asBuilt.role.scope', 'Étendue (groupes)'), value: scope });
+      if ((a.roleScopeTagIds || []).length) rows.push({ path, name: T('asBuilt.role.tags', "Balises d'étendue"), value: a.roleScopeTagIds.map(id => tagNames[id] || id).join(', ') });
+    }
+    return rows;
+  }
+
+  // MDM user scope (appliesTo none | all | selected, includedGroups) shown as assignments.
+  function mdmAssignmentRows(policy) {
+    const inc = T('asBuilt.mode.include', 'Inclure');
+    if (policy?.appliesTo === 'all') return [{ group: T('asBuilt.target.allUsers', 'Tous les utilisateurs'), mode: inc, filter: '' }];
+    if (policy?.appliesTo === 'selected') return (policy.includedGroups || []).map(g => ({ group: g.displayName || g.id, mode: inc, filter: '' }));
+    return [];
   }
 
   // Windows-safe file name from a policy name; dedupe against `used` (Set) so two homonyms don't overwrite each other.
@@ -352,10 +432,27 @@ ${body}
     return n;
   }
 
+  // Policy open in the portal: every GUID of the blade URL (policyId/, appId/, configurationId/...), lower case.
+  // Matching them against the listed ids covers every kind without knowing each blade's URL shape.
+  function guidsIn(hash) {
+    let h = String(hash || '');
+    try { h = decodeURIComponent(h); } catch {}
+    // With and without a "_Suffix": enrollment configuration ids are "<guid>_Windows10EnrollmentCompletionPageConfiguration".
+    const ids = (h.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(_[A-Za-z0-9]+)?/gi) || []).map(s => s.toLowerCase());
+    return new Set([...ids, ...ids.map(s => s.slice(0, 36))]);
+  }
+
+  // List order: the open policy, then the checked ones in the order they were checked, then the rest (input order kept).
+  function orderItems(list, checkedKeys, currentKey) {
+    const rank = new Map([...checkedKeys].map((k, i) => [k, i + 1]));
+    if (currentKey) rank.set(currentKey, 0);
+    return list.map((x, i) => [x, rank.has(x.key) ? rank.get(x.key) : Infinity, i]).sort((a, b) => a[1] - b[1] || a[2] - b[2]).map(a => a[0]);
+  }
+
   // "Windows, macOS" -> ['Windows', 'macOS'] (policySummary joins multi-platform policies with ", ").⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
   const platformsOf = p => String(p.platform || '').split(',').map(s => s.trim()).filter(Boolean);
 
-  const api = { scriptFiles, fileName, platformsOf, jwtTid, maskSecrets, toJson, htmlEscape, mdEscapeCell, fmtDate, policySummary, categoryPath, settingRows, propertyRows, admxRows, assignmentRows, toMarkdown, toWordHtml };
+  const api = { isIntuneToken, guidsIn, orderItems, IMAGE_KEYS, autopilotRows, autopilotCsv, roleAssignmentRows, mdmAssignmentRows, scriptFiles, fileName, platformsOf, jwtTid, maskSecrets, toJson, htmlEscape, mdEscapeCell, fmtDate, policySummary, categoryPath, settingRows, propertyRows, admxRows, assignmentRows, toMarkdown, toWordHtml };
   if (typeof module !== 'undefined') module.exports = api;
   else globalThis.AsBuiltLib = api;
 })();

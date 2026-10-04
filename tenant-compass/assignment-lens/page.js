@@ -64,9 +64,19 @@
       };
     }
     // The shell moves between blades with history.pushState, which fires no hashchange: poll. setRef ignores repeats.
-    const fromHash = () => setRef(L.parseHashRef(location.hash));
+    // A blade without a known object id empties the panel, so it never keeps showing the previous policy.
+    let lastHash = null;
+    const fromHash = () => {
+      if (location.hash === lastHash) return;
+      lastHash = location.hash;
+      const r = L.parseHashRef(location.hash);
+      if (r) return setRef(r);
+      ref = null;
+      navAt = Date.now() - 1000; // results seen up to 1 s before the poll noticed the change still count
+      if (result) { result = null; render(); }
+    };
     setInterval(fromHash, 1000);
-    fromHash();
+    setTimeout(fromHash, 0); // after the whole script ran: fromHash uses `result` / `navAt`, declared further down
   }
 
   window.fetch = function (input, init) {
@@ -157,7 +167,7 @@
           .then(r => ({ f, ...r }), () => ({ f, items: [], failed: true }))));
       const keys = [...s.include.map(g => g.groupId), ...(s.allUsers ? ['allUsers'] : []), ...(s.allDevices ? ['allDevices'] : [])];
       const overlaps = lists.flatMap(l =>
-        L.findOverlaps(keys, l.items.filter(p => String(p.id).toLowerCase() !== cur.id))
+        L.findOverlaps(keys, l.items.filter(p => String(p.id).toLowerCase() !== cur.id.toLowerCase()))
           .map(o => ({ policyName: o.policyName, family: l.f, group: groups[o.groupId]?.name || o.groupId, mode: o.mode })));
 
       const virtual = key => s[key] ? [{ ...groups[key], filter: filterOf(key) }] : [];
@@ -184,7 +194,7 @@
 
   // ---------- panel (top frame only) ----------⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 
-  let result = null;
+  let result = null, navAt = 0;
   let collapsed = true; // Tenant Compass: stays a small button until clicked (no auto-open)
   // Opening Assignment Lens closes As-Built (and vice versa), see shared/drag.js.
   const openedExclusive = window.__tenantCompassExclusive ? window.__tenantCompassExclusive('assignment-lens', () => { if (!collapsed) { collapsed = true; render(); } }) : () => {};
@@ -193,6 +203,7 @@
     if (e.data?.type !== MSG + 'result') return;
     if (e.origin !== TOP && !/^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.portal\.azure\.net$/.test(e.origin)) return;
     if (result && e.data.seenAt < result.seenAt) return; // a stale blade answering a refresh
+    if (e.data.seenAt < navAt) return; // seen before the user left that blade
     result = e.data;
     render();
   });

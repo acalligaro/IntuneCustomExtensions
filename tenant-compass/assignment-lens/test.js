@@ -26,6 +26,13 @@ assert.deepStrictEqual(parseHashRef(`#view/Microsoft_Intune_Workflows/PolicySumm
 assert.deepStrictEqual(parseHashRef(`#view/Microsoft_Intune_Apps/SettingsMenu/~/0/appId/${P}`), { family: 'mobileApps', id: P });
 assert.strictEqual(parseHashRef('#view/Microsoft_Intune_DeviceSettings/DevicesMenu/~/configuration'), null);
 assert.strictEqual(parseHashRef(`#view/x/policyId/${P}x`), null);
+// enrollment: Autopilot profile, ESP (id with a suffix, kept as is), MDM blade appId ignored
+assert.deepStrictEqual(parseHashRef(`#view/Microsoft_Intune_Enrollment/AutopilotMenuBlade/~/overview/apProfileId/${P}`), { family: 'windowsAutopilotDeploymentProfiles', id: P });
+assert.deepStrictEqual(parseHashRef(`#view/Microsoft_Intune_Enrollment/EnrollmentStatusPageMenuBlade/~/overview/profileId/${P.toUpperCase()}_DefaultWindows10EnrollmentCompletionPageConfiguration`),
+  { family: 'deviceEnrollmentConfigurations', id: `${P}_DefaultWindows10EnrollmentCompletionPageConfiguration` });
+assert.strictEqual(parseHashRef('#view/Microsoft_AAD_IAM/MdmApplication/appId/0000000a-0000-0000-c000-000000000000/appName/Microsoft Intune'), null);
+assert.deepStrictEqual(parsePolicyRef(`https://graph.microsoft.com/beta/deviceManagement/deviceEnrollmentConfigurations/${P}_Windows10EnrollmentCompletionPageConfiguration/assignments`),
+  { family: 'deviceEnrollmentConfigurations', id: `${P}_Windows10EnrollmentCompletionPageConfiguration` });
 
 // graphTokenIn⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url');
