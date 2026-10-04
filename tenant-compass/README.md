@@ -2,7 +2,7 @@
 
 *Boîte à outils pour le portail Microsoft Intune.* · [English version](README.en.md)
 
-Tenant Guard, As-Built en un clic, Setting Inspector, Settings Explainer, Assignment Lens, Change Snapshot et Set Tenant Language réunis dans une seule extension Chrome / Edge (Manifest V3). Chaque fonction s'active ou se désactive depuis le menu de l'extension. Aucune application à inscrire dans le tenant : l'extension réutilise la session Microsoft Graph du portail.
+Tenant Guard, As-Built en un clic, Setting Inspector, Settings Explainer, Assignment Lens, Change Snapshot, Set Tenant Language et Raccourci PIM réunis dans une seule extension Chrome / Edge (Manifest V3). Chaque fonction s'active ou se désactive depuis le menu de l'extension. Aucune application à inscrire dans le tenant : l'extension réutilise la session Microsoft Graph du portail.
 
 Architecture détaillée (scripts, flux, sécurité, stockage) : [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -26,6 +26,7 @@ Architecture détaillée (scripts, flux, sécurité, stockage) : [ARCHITECTURE.m
 - [OpenIntuneBaseline](#openintunebaseline)
 - [Change Snapshot](#change-snapshot)
 - [Set Tenant Language](#set-tenant-language)
+- [Raccourci PIM](#raccourci-pim)
 - [Déplacement](#déplacement)
 - [Fonctionnement](#fonctionnement)
 - [Limites](#limites)
@@ -43,6 +44,7 @@ Architecture détaillée (scripts, flux, sécurité, stockage) : [ARCHITECTURE.m
 | Assignment Lens | Groupes inclus / exclus, membres, filtres, chevauchements de la stratégie affichée | Bouton au-dessus d'As-Built |
 | Change Snapshot | Journal local des modifications : différence avant / après, auteur, n° de ticket, export JSON / CSV | Fenêtre en bas à droite après un enregistrement ; journal depuis le menu |
 | Set Tenant Language | Bascule la console entre deux langues prédéfinies, en 1 clic | Boutons 🌐 du menu ; Intune, Azure, Entra, Defender, Purview |
+| Raccourci PIM | Ouvre PIM > Mes rôles (affectations éligibles ou actives) sur le tenant de l'onglet actif, en 1 clic | Boutons 🔑 PIM éligible et 🔑 PIM actif du menu |
 
 ## Installation
 
@@ -59,7 +61,7 @@ Architecture détaillée (scripts, flux, sécurité, stockage) : [ARCHITECTURE.m
 |---|---|---|
 | As-Built, Assignment Lens | Lectures (`GET`) sur `graph.microsoft.com`, avec la session du portail | Les stratégies, applications et groupes affichés, comme le fait le portail |
 | Settings Explainer | Lecture sans cookie de pages publiques `learn.microsoft.com/…/windows/client-management/mdm/` | Aucune donnée du tenant : seulement le nom de la page de documentation demandée |
-| Tenant Guard, Setting Inspector, OpenIntuneBaseline, Change Snapshot, Set Tenant Language | Aucun | Ils observent la page et les réponses que le portail reçoit déjà |
+| Tenant Guard, Setting Inspector, OpenIntuneBaseline, Change Snapshot, Set Tenant Language, Raccourci PIM | Aucun | Ils observent la page et les réponses que le portail reçoit déjà |
 
 - **Jeton** : le jeton du portail n'est jamais enregistré, journalisé ni transmis au service worker. Change Snapshot n'en garde que l'auteur (`upn`) et l'identifiant du tenant (`tid`).
 - **Stockage local** : réglages, tenants référencés et couleurs dans `chrome.storage.sync` ; définitions captées, cache des pages Learn et journal Change Snapshot dans `chrome.storage.local` ; positions des panneaux dans le `localStorage` du portail. Le détail est dans [ARCHITECTURE.md](ARCHITECTURE.md), section 8.
@@ -67,13 +69,13 @@ Architecture détaillée (scripts, flux, sécurité, stockage) : [ARCHITECTURE.m
 
 ## Menu
 
-Clic sur l'icône de l'extension. Une ligne de pastilles montre les fonctions actives (description au survol, 📋 ouvre le journal de Change Snapshot, 🌐 applique la langue prédéfinie de la console). Si Tenant Guard est actif, le tenant détecté dans l'onglet et la liste des tenants référencés restent modifiables directement.
+Clic sur l'icône de l'extension. À gauche, la colonne **🌐 FR / 🌐 EN** bascule la console entre les deux langues prédéfinies ([Set Tenant Language](#set-tenant-language)) ; à droite, les pastilles des fonctions actives (description au survol, 📋 ouvre le journal de Change Snapshot). Dessous, les boutons violets **🔑 PIM éligible** et **🔑 PIM actif** ([Raccourci PIM](#raccourci-pim)). Si Tenant Guard est actif, le tenant détecté dans l'onglet et la liste des tenants référencés restent modifiables directement.
 
-![Menu : pastilles des fonctions actives, onglet actuel et tenants référencés](docs/img/readme/fr/07-menu.jpg)
+![Menu : colonne des langues de la console, pastilles des fonctions actives, boutons PIM éligible et PIM actif, onglet actuel et tenants référencés](docs/img/readme/fr/07-menu.jpg)
 
 | Paramètres (⚙), fonctions | Paramètres (⚙), suite |
 |---|---|
-| ![Paramètres : bascules des fonctions, Settings Explainer et OpenIntuneBaseline en retrait sous Setting Inspector](docs/img/readme/fr/08-menu-parametres.jpg) | ![Paramètres : langue prédéfinie, délai de la carte de paramètre, positions par défaut](docs/img/readme/fr/09-menu-parametres-suite.jpg) |
+| ![Paramètres : bascules des fonctions (dont Raccourci PIM), Settings Explainer et OpenIntuneBaseline en retrait sous Setting Inspector](docs/img/readme/fr/08-menu-parametres.jpg) | ![Paramètres : Langue 1 et Langue 2 de la console, délai de la carte de paramètre, positions par défaut](docs/img/readme/fr/09-menu-parametres-suite.jpg) |
 
 *Menu rendu avec le code réel de `popup.html` et des tenants fictifs (Contoso) : la page de l'extension ne peut pas être capturée par l'outil d'automatisation.*
 
@@ -82,7 +84,7 @@ Clic sur l'icône de l'extension. Une ligne de pastilles montre les fonctions ac
 - **📋** (dans la pastille Change Snapshot) : ouvre le journal des modifications.
 - **⚙ Paramètres** (s'ouvrent sous les pastilles) :
   - **Fonctions** : une case par fonction, avec sa description. Une fonction décochée n'injecte plus aucun script. **Settings Explainer** et **OpenIntuneBaseline** apparaissent en retrait sous Setting Inspector : ce sont les trois sections de la même carte de paramètre, chacune activable seule, sans lien entre elles.
-  - **Set Tenant Language · langues prédéfinies** : Langue 1 et Langue 2 (langue de la console et format régional), appliquées par les deux boutons 🌐.
+  - **Set Tenant Language · langues prédéfinies** : Langue 1 et Langue 2 (langue de la console et format régional), appliquées par les deux boutons 🌐 de la colonne de gauche.
   - **Carte de paramètre** : délai avant fermeture de la carte (Setting Inspector, Settings Explainer, OpenIntuneBaseline), en secondes (2 par défaut, de 0 à 60), pris en compte sans recharger le portail.
   - **Affichage** : **Positions par défaut** replace les boutons et panneaux en bas à gauche.
 - **Tenant Guard · tenants référencés** (vue principale) : correspondance, étiquette, couleur, PROD.
@@ -243,7 +245,7 @@ Détails (flux, points de terminaison couverts, limites) : [change-snapshot/READ
 
 ## Set Tenant Language
 
-Bascule la console entre **deux langues prédéfinies** (Langue 1, Langue 2), sans passer par *Paramètres > Langue + région*. Dans ⚙, choisir pour chacune la langue de la console (24 langues de la console Intune) et le format régional (dates, nombres) ; par défaut, Langue 1 = français, Langue 2 = anglais. Le menu affiche ensuite deux boutons **🌐 FR** et **🌐 EN** (selon les langues choisies) : un clic recharge l'onglet actif dans cette langue, sur la même page. Seule la langue de la **console** change, pas celle de l'extension.
+Bascule la console entre **deux langues prédéfinies** (Langue 1, Langue 2), sans passer par *Paramètres > Langue + région*. Dans ⚙, choisir pour chacune la langue de la console (24 langues de la console Intune) et le format régional (dates, nombres) ; par défaut, Langue 1 = français, Langue 2 = anglais. Le menu affiche ensuite, empilés à gauche des fonctions actives, deux boutons **🌐 FR** et **🌐 EN** (selon les langues choisies) : un clic recharge l'onglet actif dans cette langue, sur la même page. Seule la langue de la **console** change, pas celle de l'extension.
 
 | Console | Mécanisme | Testé le 2026-10-04 |
 |---|---|---|
@@ -254,6 +256,18 @@ Bascule la console entre **deux langues prédéfinies** (Langue 1, Langue 2), sa
 - Comportement observé des portails, non documenté sur Microsoft Learn : vérifier sur votre tenant si la langue reste appliquée après une navigation normale.
 - Le rechargement perd les modifications non enregistrées de l'onglet.
 - Code : `portal-language/lib.js` (testé : `node portal-language/test.js`).
+
+## Raccourci PIM
+
+Deux boutons violets du menu (la couleur de l'icône PIM du portail Azure, `#773adc`) ouvrent *Privileged Identity Management > Mes rôles > Rôles Microsoft Entra* dans un nouvel onglet :
+
+- **🔑 PIM éligible** : onglet *Affectations éligibles*, pour activer un rôle.
+- **🔑 PIM actif** : onglet *Affectations actives*, pour voir les rôles en cours, les désactiver ou les prolonger. Aucune adresse n'ouvre directement cet onglet : l'extension le sélectionne une fois la page chargée (2e onglet de la page, quelle que soit la langue du portail). Si Microsoft demande de se reconnecter, la page s'ouvre sur *Affectations éligibles*.
+
+Si Tenant Guard a détecté le tenant de l'onglet actif (ID de tenant ou domaine `*.onmicrosoft.com`), PIM s'ouvre sur **ce** tenant (préfixe Azure `#@<tenant>/`), pas sur le tenant d'origine du compte : utile pour un prestataire qui travaille sur le tenant d'un client. Sinon, PIM s'ouvre sur le tenant par défaut du compte.
+
+- Adresse : `https://portal.azure.com/#@<tenant>/view/Microsoft_Azure_PIMCommon/ActivationMenuBlade/~/aadmigratedroles`. Testé le 2026-10-04 (les deux boutons) ; comportement observé du portail, non documenté sur Microsoft Learn.
+- Code : `pim/lib.js` (testé : `node pim/test.js`), sélection de l'onglet actif dans `background.js`.
 
 ## Déplacement
 

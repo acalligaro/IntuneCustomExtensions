@@ -1,7 +1,7 @@
 // Feature menu. Main view: active features (chips), Tenant Guard current tab and rules; ⚙ opens the settings (feature toggles, positions).⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 // background.js re-registers content scripts when `features` changes; open tabs need a reload. Strings: shared/i18n.js.
 
-const DEFAULTS = { tenantGuard: true, asBuilt: true, settingInspector: true, settingsExplainer: true, oibRecommendations: true, assignmentLens: true, changeSnapshot: true, portalLanguage: true }; // keep in sync with background.js
+const DEFAULTS = { tenantGuard: true, asBuilt: true, settingInspector: true, settingsExplainer: true, oibRecommendations: true, assignmentLens: true, changeSnapshot: true, portalLanguage: true, pim: true }; // keep in sync with background.js
 // Set Tenant Language: two presets (language 1 / language 2), one button each.
 const PL_DEFAULT = [{ lang: 'fr', format: 'fr-fr' }, { lang: 'en', format: 'en-us' }];
 let portalLangs = PL_DEFAULT.map(p => ({ ...p }));
@@ -46,9 +46,7 @@ function renderPortalLang() {
 
 // Quick actions shown next to an active feature.
 const ACTIONS = {
-  portalLanguage: () => el('span', { className: 'solo' }, ...portalLangs.map(p => el('button', { textContent: '🌐 ' + p.lang.toUpperCase(),
-    title: `${t('f.portalLanguage')} · ${t('pl.apply', { code: `${displayName(p.lang, 'language')} · ${displayName(p.format, 'language')}` })}`,
-    onclick: () => applyPortalLang(p) }))),
+
   changeSnapshot: () => el('button', { textContent: '📋', title: t('menu.journal.title'), ariaLabel: t('menu.journal.title'),
     onclick: () => chrome.tabs.create({ url: chrome.runtime.getURL('change-snapshot/journal.html') }) }),
 };
@@ -57,10 +55,13 @@ function render() {
   applyI18n();
   const on = Object.keys(DEFAULTS).filter(k => features[k]);
   // Compact: one chip per active feature (description as tooltip, full text in ⚙), quick action as an icon inside the chip.
-  // Set Tenant Language is its action only (🌐 + target language): its full name is in the tooltip.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
-  $id('active-list').replaceChildren(...on.map(k => k === 'portalLanguage'
-    ? ACTIONS[k]()
-    : el('span', { title: t('f.' + k + '.desc') }, t('f.' + k), ...(ACTIONS[k] ? [ACTIONS[k]()] : []))));
+  // Set Tenant Language and PIM are actions only, shown outside the chips (left column, buttons row).⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
+  // Set Tenant Language: one button per preset, stacked left of the chips (#pl-col). PIM: its own buttons row.
+  $id('pl-col').replaceChildren(...portalLangs.map(p => el('button', { textContent: '🌐 ' + p.lang.toUpperCase(),
+    title: `${t('f.portalLanguage')} · ${t('pl.apply', { code: `${displayName(p.lang, 'language')} · ${displayName(p.format, 'language')}` })}`,
+    onclick: () => applyPortalLang(p) })));
+  $id('active-list').replaceChildren(...on.filter(k => k !== 'pim' && k !== 'portalLanguage').map(k =>
+    el('span', { title: t('f.' + k + '.desc') }, t('f.' + k), ...(ACTIONS[k] ? [ACTIONS[k]()] : []))));
   $id('none').hidden = on.length > 0;
   $id('toggles').replaceChildren(...Object.keys(DEFAULTS).map(k => {
     const box = el('input', { type: 'checkbox', checked: features[k], onchange: () => {
@@ -73,10 +74,24 @@ function render() {
   }));
   for (const n of document.querySelectorAll('.tg-only')) n.hidden = !features.tenantGuard;
   for (const n of document.querySelectorAll('.pl-only')) n.hidden = !features.portalLanguage;
+  for (const n of document.querySelectorAll('.pim-only')) n.hidden = !features.pim;
   // Card close delay: applies to the setting card, whichever of its modules are on.
   for (const n of document.querySelectorAll('.se-only')) n.hidden = !(features.settingInspector || features.settingsExplainer || features.oibRecommendations);
   for (const b of document.querySelectorAll('[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
 }
+
+// PIM: My roles in the tenant Tenant Guard detected in the active tab (see pim/lib.js). "Active" selects its tab in background.js.
+function openPim(active) {
+  chrome.tabs.query({ active: true, currentWindow: true }, async ([tab]) => {
+    const st = tab && (await chrome.storage.session.get('t' + tab.id))['t' + tab.id];
+    const url = Pim.pimUrl(st?.signals);
+    if (active) chrome.runtime.sendMessage({ type: 'pimActive', url });
+    else chrome.tabs.create({ url });
+    window.close();
+  });
+}
+$id('pim-eligible').onclick = () => openPim(false);
+$id('pim-active').onclick = () => openPim(true);
 
 $id('gear').onclick = () => {
   const open = $id('settings').hidden;

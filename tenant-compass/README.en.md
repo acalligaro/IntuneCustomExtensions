@@ -2,7 +2,7 @@
 
 *A toolbox for the Microsoft Intune admin center.* · [Version française](README.md)
 
-Tenant Guard, One-click As-Built, Setting Inspector, Settings Explainer, Assignment Lens, Change Snapshot and Set Tenant Language in a single Chrome / Edge extension (Manifest V3). Each feature is turned on or off from the extension menu. No app registration in the tenant: the extension reuses the portal's own Microsoft Graph session.
+Tenant Guard, One-click As-Built, Setting Inspector, Settings Explainer, Assignment Lens, Change Snapshot, Set Tenant Language and PIM shortcut in a single Chrome / Edge extension (Manifest V3). Each feature is turned on or off from the extension menu. No app registration in the tenant: the extension reuses the portal's own Microsoft Graph session.
 
 Detailed architecture (scripts, flows, security, storage), in French: [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -26,6 +26,7 @@ Detailed architecture (scripts, flows, security, storage), in French: [ARCHITECT
 - [OpenIntuneBaseline](#openintunebaseline)
 - [Change Snapshot](#change-snapshot)
 - [Set Tenant Language](#set-tenant-language)
+- [PIM shortcut](#pim-shortcut)
 - [Moving panels](#moving-panels)
 - [How it works](#how-it-works)
 - [Limitations](#limitations)
@@ -43,6 +44,7 @@ Detailed architecture (scripts, flows, security, storage), in French: [ARCHITECT
 | Assignment Lens | Included / excluded groups, members, filters, overlaps of the displayed policy | Button above As-Built |
 | Change Snapshot | Local change log: before / after diff, author, ticket number, JSON / CSV export | Window at the bottom right after a save; log from the menu |
 | Set Tenant Language | Switches the console between two preset languages in one click | 🌐 buttons in the menu; Intune, Azure, Entra, Defender, Purview |
+| PIM shortcut | Opens PIM > My roles (eligible or active assignments) on the active tab's tenant in one click | 🔑 PIM eligible and 🔑 PIM active buttons in the menu |
 
 ## Installation
 
@@ -59,7 +61,7 @@ Detailed architecture (scripts, flows, security, storage), in French: [ARCHITECT
 |---|---|---|
 | As-Built, Assignment Lens | Reads (`GET`) on `graph.microsoft.com`, with the portal session | The policies, apps and groups shown, as the portal itself does |
 | Settings Explainer | Cookie-less reads of public `learn.microsoft.com/…/windows/client-management/mdm/` pages | No tenant data: only the name of the documentation page requested |
-| Tenant Guard, Setting Inspector, OpenIntuneBaseline, Change Snapshot, Set Tenant Language | None | They observe the page and the responses the portal already receives |
+| Tenant Guard, Setting Inspector, OpenIntuneBaseline, Change Snapshot, Set Tenant Language, PIM shortcut | None | They observe the page and the responses the portal already receives |
 
 - **Token**: the portal token is never stored, logged or sent to the service worker. Change Snapshot only keeps the author (`upn`) and the tenant ID (`tid`).
 - **Local storage**: settings, known tenants and colors in `chrome.storage.sync`; captured definitions, the Learn page cache and the Change Snapshot log in `chrome.storage.local`; panel positions in the portal's `localStorage`. Details in [ARCHITECTURE.md](ARCHITECTURE.md), section 8.
@@ -67,13 +69,13 @@ Detailed architecture (scripts, flows, security, storage), in French: [ARCHITECT
 
 ## Menu
 
-Click the extension icon. A row of pills shows the active features (description on hover, 📋 opens the Change Snapshot log, 🌐 applies the preset console language). When Tenant Guard is on, the tenant detected in the tab and the list of known tenants can be edited right there.
+Click the extension icon. On the left, the **🌐 FR / 🌐 EN** column switches the console between the two preset languages ([Set Tenant Language](#set-tenant-language)); on the right, the active feature pills (description on hover, 📋 opens the Change Snapshot log). Below, the purple **🔑 PIM eligible** and **🔑 PIM active** buttons ([PIM shortcut](#pim-shortcut)). When Tenant Guard is on, the tenant detected in the tab and the list of known tenants can be edited right there.
 
-![Menu: active feature pills, current tab and known tenants](docs/img/readme/en/07-menu.jpg)
+![Menu: console language column, active feature pills, PIM eligible and PIM active buttons, current tab and known tenants](docs/img/readme/en/07-menu.jpg)
 
 | Settings (⚙), features | Settings (⚙), continued |
 |---|---|
-| ![Settings: feature toggles, Settings Explainer and OpenIntuneBaseline indented under Setting Inspector](docs/img/readme/en/08-menu-parametres.jpg) | ![Settings: preset language, setting card delay, reset positions](docs/img/readme/en/09-menu-parametres-suite.jpg) |
+| ![Settings: feature toggles (including PIM shortcut), Settings Explainer and OpenIntuneBaseline indented under Setting Inspector](docs/img/readme/en/08-menu-parametres.jpg) | ![Settings: console Language 1 and Language 2, setting card delay, reset positions](docs/img/readme/en/09-menu-parametres-suite.jpg) |
 
 *Menu rendered with the actual `popup.html` code and fictitious tenants (Contoso): the extension page cannot be captured by the automation tool.*
 
@@ -82,7 +84,7 @@ Click the extension icon. A row of pills shows the active features (description 
 - **📋** (in the Change Snapshot pill): opens the change log.
 - **⚙ Settings** (open under the pills):
   - **Features**: one checkbox per feature, with its description. A cleared feature injects no script at all. **Settings Explainer** and **OpenIntuneBaseline** are indented under Setting Inspector: they are the three sections of the same setting card, each usable on its own, independent of each other.
-  - **Set Tenant Language · preset languages**: Language 1 and Language 2 (console language and regional format), applied by the two 🌐 buttons.
+  - **Set Tenant Language · preset languages**: Language 1 and Language 2 (console language and regional format), applied by the two 🌐 buttons of the left column.
   - **Setting card**: card close delay (Setting Inspector, Settings Explainer, OpenIntuneBaseline), in seconds (2 by default, 0 to 60), applied without reloading the portal.
   - **Display**: **Reset positions** moves the buttons and panels back to the bottom left.
 - **Tenant Guard · known tenants** (main view): match, label, color, PROD.
@@ -241,7 +243,7 @@ Details (flow, covered endpoints, limitations), in French: [change-snapshot/READ
 
 ## Set Tenant Language
 
-Switches the console between **two preset languages** (Language 1, Language 2), without going through *Settings > Language + region*. In ⚙, choose for each the console language (the 24 languages of the Intune console) and the regional format (dates, numbers); by default, Language 1 = French, Language 2 = English. The menu then shows two buttons, **🌐 FR** and **🌐 EN** (per the chosen languages): one click reloads the active tab in that language, on the same page. This only changes the **console** language, not the extension's.
+Switches the console between **two preset languages** (Language 1, Language 2), without going through *Settings > Language + region*. In ⚙, choose for each the console language (the 24 languages of the Intune console) and the regional format (dates, numbers); by default, Language 1 = French, Language 2 = English. The menu then shows, stacked left of the active features, two buttons, **🌐 FR** and **🌐 EN** (per the chosen languages): one click reloads the active tab in that language, on the same page. This only changes the **console** language, not the extension's.
 
 | Console | Mechanism | Tested on 2026-10-04 |
 |---|---|---|
@@ -252,6 +254,18 @@ Switches the console between **two preset languages** (Language 1, Language 2), 
 - Observed portal behavior, not documented on Microsoft Learn: check on your tenant whether the language sticks after normal navigation.
 - The reload loses unsaved changes in the tab.
 - Code: `portal-language/lib.js` (tested: `node portal-language/test.js`).
+
+## PIM shortcut
+
+Two purple menu buttons (the Azure portal's PIM icon color, `#773adc`) open *Privileged Identity Management > My roles > Microsoft Entra roles* in a new tab:
+
+- **🔑 PIM eligible**: *Eligible assignments* tab, to activate a role.
+- **🔑 PIM active**: *Active assignments* tab, to see current roles, deactivate or extend them. No address opens this tab directly: the extension selects it once the page has loaded (the page's 2nd tab, whatever the portal language). If Microsoft asks to sign in again, the page opens on *Eligible assignments*.
+
+When Tenant Guard has detected the active tab's tenant (tenant ID or `*.onmicrosoft.com` domain), PIM opens on **that** tenant (Azure `#@<tenant>/` prefix), not on the account's home tenant: useful for a consultant working on a customer tenant. Otherwise, PIM opens on the account's default tenant.
+
+- Address: `https://portal.azure.com/#@<tenant>/view/Microsoft_Azure_PIMCommon/ActivationMenuBlade/~/aadmigratedroles`. Tested on 2026-10-04 (both buttons); observed portal behavior, not documented on Microsoft Learn.
+- Code: `pim/lib.js` (tested: `node pim/test.js`), active tab selection in `background.js`.
 
 ## Moving panels
 

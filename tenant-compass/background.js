@@ -1,5 +1,19 @@
 // Registers the content scripts of the enabled features only, so a disabled feature injects nothing.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
-importScripts('tenant-guard/background.js', 'change-snapshot/background.js', 'settings-explainer/csp.js', 'settings-explainer/background.js');
+importScripts('tenant-guard/background.js', 'change-snapshot/background.js', 'settings-explainer/csp.js', 'settings-explainer/background.js', 'pim/lib.js');
+
+// PIM "Active" button (popup): open My roles, then select the Active assignments tab once the page has loaded.
+chrome.runtime.onMessage.addListener(msg => {
+  if (msg.type !== 'pimActive') return;
+  chrome.tabs.create({ url: msg.url }).then(({ id }) => {
+    const done = (tabId, info) => {
+      if (tabId !== id || info.status !== 'complete') return;
+      chrome.tabs.onUpdated.removeListener(done);
+      // Fails on the sign-in page (no host permission): the user then picks the tab, nothing else breaks.
+      chrome.scripting.executeScript({ target: { tabId: id }, func: Pim.selectActiveTab }).catch(() => {});
+    };
+    chrome.tabs.onUpdated.addListener(done);
+  });
+});
 
 // Portals only: host_permissions also holds learn.microsoft.com (Settings Explainer reads its CSP pages), where nothing is injected.
 const PORTALS = chrome.runtime.getManifest().host_permissions.filter(h => !h.includes('learn.microsoft.com'));
@@ -65,7 +79,7 @@ const SCRIPTS = {
     runAt: 'document_start',
   }],
 };
-const DEFAULTS = { tenantGuard: true, asBuilt: true, settingInspector: true, settingsExplainer: true, oibRecommendations: true, assignmentLens: true, changeSnapshot: true, portalLanguage: true }; // portalLanguage: popup-only, no content script
+const DEFAULTS = { tenantGuard: true, asBuilt: true, settingInspector: true, settingsExplainer: true, oibRecommendations: true, assignmentLens: true, changeSnapshot: true, portalLanguage: true, pim: true }; // portalLanguage, pim: popup-only, no content script
 
 // UI language of the in-page features: a marker script sets <html data-tenant-compass-lang>, read by shared/i18n-page.js
 // in every world. Each feature script also gets the shared helper and its own dictionary (<feature>/i18n.js).⁣​​‌​‌​​​​​​‌​​‌​‍​⁣

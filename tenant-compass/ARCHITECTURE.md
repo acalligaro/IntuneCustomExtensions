@@ -1,6 +1,6 @@
 # Tenant Compass : architecture
 
-Document destiné aux mainteneurs. Il décrit ce que fait réellement le code de `tenant-compass/` (version `0.9.1` du manifeste). Les points non confirmés par la lecture du code sont marqués **à vérifier**.
+Document destiné aux mainteneurs. Il décrit ce que fait réellement le code de `tenant-compass/` (version `0.9.2` du manifeste). Les points non confirmés par la lecture du code sont marqués **à vérifier**.
 
 ---
 
@@ -17,13 +17,14 @@ Tenant Compass est une extension Chrome / Edge (**Manifest V3**, Chrome ≥ 111)
 | **OpenIntuneBaseline** | Même carte, section OIB : valeur configurée par la baseline communautaire OpenIntuneBaseline (GPL-3.0) et stratégie concernée. Activable seule. |
 | **Assignment Lens** | Panneau sur une stratégie ou une application : groupes inclus / exclus, nombre de membres, filtres, chevauchements. |
 | **Change Snapshot** | Journal local des modifications de stratégies faites dans le portail : diff avant / après, auteur, n° de ticket, export JSON / CSV. |
-| **Set Tenant Language** | Pastille « 🌐 » du menu : recharge l'onglet du portail dans une langue et un format régional prédéfinis. |
+| **Set Tenant Language** | Boutons « 🌐 » empilés à gauche des pastilles du menu : rechargent l'onglet de la console dans la Langue 1 ou la Langue 2 prédéfinies. |
+| **Raccourci PIM** | Boutons violets « 🔑 PIM éligible » / « 🔑 PIM actif » du menu : ouvrent PIM > Mes rôles sur le tenant détecté dans l'onglet actif. |
 
 Principes :
 
-- **Aucune inscription d'application dans le tenant.** As-Built et Assignment Lens réutilisent le jeton Graph que le portail utilise déjà (observé en mémoire). Tenant Guard, Setting Inspector, Settings Explainer, Change Snapshot et Set Tenant Language n'appellent jamais Graph (Change Snapshot observe seulement les appels du portail). Settings Explainer lit des pages publiques de `learn.microsoft.com` depuis le service worker (section 4.7).
+- **Aucune inscription d'application dans le tenant.** As-Built et Assignment Lens réutilisent le jeton Graph que le portail utilise déjà (observé en mémoire). Tenant Guard, Setting Inspector, Settings Explainer, Change Snapshot, Set Tenant Language et le Raccourci PIM n'appellent jamais Graph (Change Snapshot observe seulement les appels du portail). Settings Explainer lit des pages publiques de `learn.microsoft.com` depuis le service worker (section 4.7).
 - **Pas d'étape de build.** Le dossier se charge tel quel comme extension décompressée. Pas de bundler, pas de dépendance npm.
-- **JavaScript vanilla.** Chaque fonction sépare un `lib.js` pur (testable sous Node via `module.exports`) et un script de page qui touche au DOM et au réseau (Set Tenant Language n'a pas de script de page : son `lib.js` est chargé par le popup).
+- **JavaScript vanilla.** Chaque fonction sépare un `lib.js` pur (testable sous Node via `module.exports`) et un script de page qui touche au DOM et au réseau (Set Tenant Language et le Raccourci PIM n'ont pas de script de page : leur `lib.js` est chargé par le popup, et par le service worker pour PIM).
 - **Bilingue FR / EN** : le menu et les textes affichés dans le portail suivent la langue choisie dans le menu (section 5.3).
 - Tout le code vit dans `tenant-compass/` : il n'existe plus de version autonome des fonctions dans le dépôt.
 
@@ -36,7 +37,7 @@ tenant-compass/
 ├── manifest.json                 MV3 : permissions, host_permissions, service worker, popup, ressources web accessibles
 ├── background.js                 Service worker : enregistre le marqueur de langue `ui-lang` et les content scripts des fonctions actives (avec leurs dictionnaires), importe les relais
 ├── popup.html                    Menu de l'extension (aussi page d'options ouverte en onglet)
-├── popup.js                      Pastilles des fonctions actives, paramètres ⚙, bascules générées, Set Tenant Language, « Positions par défaut », bouton de rechargement
+├── popup.js                      Pastilles des fonctions actives, colonne Set Tenant Language, boutons PIM, paramètres ⚙, bascules générées, « Positions par défaut », bouton de rechargement
 ├── README.md                     Guide utilisateur (français)
 ├── README.en.md                  Guide utilisateur (anglais)
 ├── ARCHITECTURE.md               Ce document
@@ -97,8 +98,11 @@ tenant-compass/
 │   ├── journal.html / journal.js Page Journal : filtres, détail, export JSON / CSV, vidage
 │   ├── README.md                 Fonctionnement détaillé, sécurité, limites, endpoints couverts
 │   └── test.js                   Tests Node
-└── portal-language/
-    ├── lib.js                    Set Tenant Language : LANGUAGES (24), FORMATS (30), isPortal(), portalUrl() (chargé par le popup)
+├── portal-language/
+│   ├── lib.js                    Set Tenant Language : LANGUAGES (24), FORMATS (30), isPortal(), portalUrl() (chargé par le popup)
+│   └── test.js                   Tests Node
+└── pim/
+    ├── lib.js                    Raccourci PIM : pimUrl(), selectActiveTab() (chargé par le popup et le service worker)
     └── test.js                   Tests Node
 ```
 
@@ -110,8 +114,9 @@ tenant-compass/
 
 ```mermaid
 flowchart TD
-  P["popup.html / popup.js"] -->|"set features, lang, portalLang"| S[("chrome.storage.sync<br/>features, lang, portalLang")]
-  P -->|"tabs.update ?l=langue.format<br/>(Set Tenant Language)"| TOP
+  P["popup.html / popup.js"] -->|"set features, lang, portalLangs"| S[("chrome.storage.sync<br/>features, lang, portalLangs")]
+  P -->|"tabs.update ?l=langue.format ou ?mkt=locale<br/>(Set Tenant Language)"| TOP
+  P -->|"tabs.create PIM / message pimActive"| BG
   P -->|"tabs.create"| J["change-snapshot/journal.html"]
   S -->|"storage.onChanged (features, lang) / onInstalled / onStartup"| BG["background.js<br/>(service worker)"]
   BG -->|"unregister + registerContentScripts"| REG["Content scripts enregistrés<br/>ui-lang (shared/lang/xx.js) + fonctions<br/>(précédées de l'assistant i18n du monde + i18n.js)"]
@@ -160,7 +165,7 @@ flowchart TD
   CS2 -.->|"observe les appels du portail, aucun appel"| G
 ```
 
-`portal.azure.com` reçoit Tenant Guard et Change Snapshot. Les autres portails (`entra`, `security`, `admin`, `purview`, `compliance`, Exchange, Teams) ne reçoivent que Tenant Guard. Le frame top de Change Snapshot passe lui aussi par le relais du service worker pour ses propres observations. Le marqueur de langue `ui-lang` est injecté dans toutes les frames de tous les portails (`PORTALS` : les `host_permissions` sans `learn.microsoft.com`), que des fonctions y soient actives ou non. Rien n'est injecté dans `learn.microsoft.com`, que seul le service worker lit pour Settings Explainer. Set Tenant Language n'injecte rien : le popup modifie seulement l'URL de l'onglet actif.
+`portal.azure.com` reçoit Tenant Guard et Change Snapshot. Les autres consoles d'administration (`entra`, `aad.portal.azure.com`, `security`, `admin.microsoft.com`, `admin.cloud.microsoft` dont Exchange, `purview`, `compliance`, `admin.exchange`, `admin.teams`, `*.sharepoint.com`) ne reçoivent que Tenant Guard ; sur `*.sharepoint.com`, Tenant Guard n'agit que sur `<tenant>-admin.sharepoint.com` (`isAdminConsole`), jamais sur les sites utilisateur. Le frame top de Change Snapshot passe lui aussi par le relais du service worker pour ses propres observations. Le marqueur de langue `ui-lang` est injecté dans toutes les frames de tous les portails (`PORTALS` : les `host_permissions` sans `learn.microsoft.com`), que des fonctions y soient actives ou non. Rien n'est injecté dans `learn.microsoft.com`, que seul le service worker lit pour Settings Explainer. Set Tenant Language n'injecte rien : le popup modifie seulement l'URL de l'onglet actif. Le Raccourci PIM n'injecte qu'une fonction ponctuelle (`executeScript`) dans l'onglet PIM qu'il vient d'ouvrir (bouton « actif »).
 
 ---
 
@@ -182,8 +187,8 @@ Plus `tenant-guard/background.js`, chargé par `importScripts` dans le service w
 
 **Flux.**
 
-1. Frame top : `detect()` toutes les 1,5 s (`setInterval`). Signaux, par priorité : paramètres d'URL `tid` / `tenantId` / `tenant` / `ctid` et `#@domaine` (`urlSignals`), nom d'annuaire `.fxs-avatarmenu-tenant`, realm MSAL trouvé dans les **noms de clés** `localStorage` / `sessionStorage` du portail (`storageRealms`, ignoré si plusieurs realms).
-2. `matchRule` compare les signaux aux règles (`chrome.storage.sync` `rules`) ; la première correspondance gagne.
+1. Frame top : `detect()` toutes les 1,5 s (`setInterval`). Page utilisateur d'un hôte partagé (site SharePoint, `isAdminConsole` faux) : état `off`, ni bandeau ni garde. Signaux, par priorité : paramètres d'URL `tid` / `tenantId` / `tenant` / `ctid` et `#@domaine` (`urlSignals`), nom d'annuaire `.fxs-avatarmenu-tenant`, realm MSAL trouvé dans les **noms de clés** `localStorage` / `sessionStorage` du portail (`storageRealms`, formats MSAL v2 `-login.windows.net-` et v3+ `msal.N|…|login.windows.net|…`, ignoré si plusieurs realms), sinon tenant de la session du shell Microsoft 365 (`shellTenant` : `sessionStorage` `sessionTracking_ActiveAccountIdentifier` → entrée `localStorage` avec `tenantId`, utile sur `admin.cloud.microsoft` où MSAL v5 ne laisse pas de clé).
+2. `matchRule` compare les signaux aux règles (`chrome.storage.sync` `rules`) ; la première correspondance gagne. Si la règle a été trouvée par le **nom d'annuaire** et que l'ID de tenant n'appartient à aucune règle, `learnTenantId` l'ajoute à la correspondance de la règle (écriture `rules`) : la même règle reconnaît ensuite les consoles qui n'exposent que l'ID (Defender, Admin M365). Jamais depuis un `?tid=` (GDAP).
 3. Si l'état change : rendu du bandeau (Shadow DOM ouvert, hôte `#tenant-guard`) et `chrome.runtime.sendMessage({ type: 'state' })`.
 4. `tenant-guard/background.js` stocke l'état dans `chrome.storage.session` (`t<tabId>`), le renvoie aux frames de l'onglet (`chrome.tabs.sendMessage`), met le badge `PROD` et sa couleur.
 5. Iframes : `getState` au chargement, puis mise à jour à chaque message `state`.
@@ -191,15 +196,15 @@ Plus `tenant-guard/background.js`, chargé par `importScripts` dans le service w
 
 **Aucun appel Graph.**
 
-**Stockage.** `chrome.storage.sync` : `rules`, `customColors`. `chrome.storage.session` : `t<tabId>`. Lecture seule des noms de clés `localStorage` / `sessionStorage` du portail.
+**Stockage.** `chrome.storage.sync` : `rules` (dont l'ID de tenant appris), `customColors`. `chrome.storage.session` : `t<tabId>`. Lecture seule des noms de clés `localStorage` / `sessionStorage` du portail et de l'entrée de session du shell Microsoft 365 (`tenantId` seulement).
 
 **Interface de l'extension.** Les clics dont le chemin passe par un hôte de Tenant Compass (`#tenant-guard`, `#as-built-host`, `#assignment-lens`, `#setting-inspector`, `#settings-explainer`, `#change-snapshot`) ne sont jamais gardés : ces boutons n'écrivent que des données locales (par exemple « Enregistrer » du journal Change Snapshot).
 
-**UI.** Pastille fixe en haut au centre, cadre de 4 px (6 px en PROD), modale de confirmation (focus par défaut sur « Annuler »). Dans le popup : carte « onglet actuel » (signaux détectés, bouton « Référencer ») et tableau des tenants (correspondance, étiquette, couleur, PROD), export JSON, import (ouvre la page d'options en onglet car le sélecteur de fichier ferme le popup ; idem pour le sélecteur de couleur libre). Le choix de couleur (`<details class="pick">`) est une grille de 5 colonnes de 164 px de large : ligne 1, les 5 couleurs par défaut (`PRESETS`) ; ligne 2, les 5 couleurs enregistrées (`customColors`, la première forcée en colonne 1) ; dessous, curseurs teinte / luminosité, code hex, « Autre… » et « Enregistrer ».
+**UI.** Pastille fixe en haut au centre, cadre de 4 px (6 px en PROD), modale de confirmation (focus par défaut sur « Annuler »). Dans le popup : carte « onglet actuel » (signaux détectés, bouton « Référencer » qui crée **une** règle avec tous les signaux non référencés : nom et ID) et tableau des tenants (correspondance, étiquette, couleur, PROD), export JSON, import (ouvre la page d'options en onglet car le sélecteur de fichier ferme le popup ; idem pour le sélecteur de couleur libre). Le choix de couleur (`<details class="pick">`) est une grille de 5 colonnes de 164 px de large : ligne 1, les 5 couleurs par défaut (`PRESETS`) ; ligne 2, les 5 couleurs enregistrées (`customColors`, la première forcée en colonne 1) ; dessous, curseurs teinte / luminosité, code hex, « Autre… » et « Enregistrer ».
 
-**`lib.js`.** `urlSignals`, `storageRealms`, `matchRule`, `isGuarded`, `mergeRules` (import non fiable : filtrage, troncature, couleur hex forcée, fusion par `match`).
+**`lib.js`.** `isAdminConsole`, `urlSignals`, `storageRealms`, `shellTenant`, `matchRule`, `learnTenantId`, `isGuarded`, `mergeRules` (import non fiable : filtrage, troncature, couleur hex forcée, fusion par `match`).
 
-**Tests.** `tenant-guard/test.js` : signaux URL, realms MSAL, correspondance des règles, mots-clés gardés (positifs et négatifs), fusion d'import.
+**Tests.** `tenant-guard/test.js` : consoles d'administration (SharePoint admin oui, sites non), signaux URL, realms MSAL (v2 et v3+), session du shell M365, correspondance des règles, apprentissage de l'ID de tenant, mots-clés gardés (positifs et négatifs), fusion d'import.
 
 ### 4.2 As-Built
 
@@ -398,28 +403,46 @@ sequenceDiagram
 
 ### 4.6 Set Tenant Language
 
-**Rôle.** Passer l'onglet du portail (Intune, `endpoint`, Azure, Entra) dans une langue et un format régional prédéfinis, en un clic depuis le menu. Équivaut à Paramètres > Langue + région du portail.
+**Rôle.** Basculer l'onglet de la console entre deux langues prédéfinies (Langue 1, Langue 2), en un clic depuis le menu. Équivaut à Paramètres > Langue + région du portail.
 
 **Scripts.** Aucun content script : la clé `portalLanguage` figure dans `DEFAULTS` (`background.js` et `popup.js`) mais **pas** dans `SCRIPTS`. `portal-language/lib.js` est chargé par `popup.html` (global `PortalLanguage`).
 
 **Flux.**
 
-1. Pastille « 🌐 <LANGUE> » de la vue principale (`ACTIONS.portalLanguage`) → `applyPortalLang()`.
+1. Bouton « 🌐 <LANGUE> » de la colonne `#pl-col` (un par préréglage) → `applyPortalLang(préréglage)`.
 2. `chrome.tabs.query` sur l'onglet actif : `tab.url` est lisible grâce aux `host_permissions` (pas de permission `tabs`).
-3. `portalUrl(url, lang, format)` reconstruit la même URL avec `?l=<langue>.<format>` (un `l=` existant est remplacé, les autres paramètres et la route `#…` sont gardés). Retourne `null` si l'URL n'est pas un portail (`isPortal`) ou si la langue / le format sont hors liste → message `pl.noPortal` dans `#pl-msg`.
+3. `portalUrl(url, lang, format)` reconstruit la même URL : `?l=<langue>.<format>` sur Intune, `endpoint`, Azure, Entra ; `?mkt=<locale>` sur Defender et Purview (le format s'il est une variante de la langue, sinon la langue seule). Les autres paramètres et la route `#…` sont gardés. Retourne `null` si l'URL n'est pas une console prise en charge (`isPortal`) ou si la langue / le format sont hors liste → message `pl.noPortal` dans `#pl-msg`. Admin M365, Exchange, Teams et SharePoint suivent la langue du compte : aucun paramètre d'URL testé ne la change (2026-10-04), ils ne sont pas pris en charge.
 4. `chrome.tabs.update(tab.id, { url })` puis `window.close()`. L'onglet se recharge : **les modifications non enregistrées dans le portail sont perdues**.
 
-Le paramètre `l=` est un comportement **observé** du portail, **non documenté sur Microsoft Learn**. Que la langue reste appliquée après une navigation normale (sans `l=` dans l'URL) est **à vérifier**.
+Les paramètres `l=` et `mkt=` sont des comportements **observés**, **non documentés sur Microsoft Learn**. Que la langue reste appliquée après une navigation normale est **à vérifier**.
 
 **Aucun appel Graph.**
 
-**Stockage.** `chrome.storage.sync` `portalLang` : `{ lang, format }`, défaut `{ lang: 'en', format: 'en-us' }`.
+**Stockage.** `chrome.storage.sync` `portalLangs` : `[{ lang, format }, { lang, format }]`, défaut français (`fr`, `fr-fr`) puis anglais (`en`, `en-us`). L'ancienne clé `portalLang` (un seul préréglage) devient la Langue 2 à la lecture.
 
-**UI.** Pastille seule dans `#active-list` (classe `solo`, nom complet de la fonction et cible en infobulle). Carte `.pl-only` dans ⚙ (masquée si la fonction est désactivée) : deux `<select>` (langue, format), libellés produits par `Intl.DisplayNames` dans la langue du menu suivis du code ; chaque changement écrit `portalLang` et redessine la pastille.
+**UI.** Colonne `#pl-col` à gauche des pastilles (`.strip` en flex), boutons empilés, nom de la fonction et cible en infobulle. Carte `.pl-only` dans ⚙ (masquée si la fonction est désactivée) : pour chaque langue, deux `<select>` (langue, format), libellés produits par `Intl.DisplayNames` dans la langue du menu suivis du code ; chaque changement écrit `portalLangs` et redessine les boutons.
 
-**`lib.js`** (`globalThis.PortalLanguage`, `module.exports` sous Node). `LANGUAGES` (24 langues de la console Intune, codes du portail Azure), `FORMATS` (30 formats régionaux), `isPortal(url)` (HTTPS et hôte exact parmi `intune.microsoft.com`, `endpoint.microsoft.com`, `portal.azure.com`, `entra.microsoft.com`), `portalUrl(url, lang, format)`.
+**`lib.js`** (`globalThis.PortalLanguage`, `module.exports` sous Node). `LANGUAGES` (24 langues de la console Intune, codes du portail Azure), `FORMATS` (30 formats régionaux), `isPortal(url)` (HTTPS et hôte exact parmi les consoles prises en charge), `portalUrl(url, lang, format)`.
 
-**Tests.** `portal-language/test.js` : `isPortal` (HTTP, hôte suffixé, `chrome://`, URL invalide refusés), conservation de la route `#`, remplacement de `l=`, valeurs inconnues, 24 langues et formats sans doublon.
+**Tests.** `portal-language/test.js` : `isPortal` (HTTP, hôte suffixé, `chrome://`, URL invalide refusés), conservation de la route `#`, remplacement de `l=`, `mkt=` sur Defender / Purview, consoles non prises en charge, valeurs inconnues, 24 langues et formats sans doublon.
+
+### 4.6 bis Raccourci PIM
+
+**Rôle.** Ouvrir *Privileged Identity Management > Mes rôles > Rôles Microsoft Entra* dans un nouvel onglet, sur l'onglet *Affectations éligibles* (« 🔑 PIM éligible ») ou *Affectations actives* (« 🔑 PIM actif »), dans le tenant détecté par Tenant Guard pour l'onglet actif.
+
+**Scripts.** Aucun content script : la clé `pim` figure dans `DEFAULTS` mais pas dans `SCRIPTS`. `pim/lib.js` est chargé par `popup.html` et par le service worker (`importScripts`, global `Pim`).
+
+**Flux.**
+
+1. Popup : `openPim(active)` lit l'état Tenant Guard de l'onglet actif (`chrome.storage.session` `t<tabId>`) et construit l'adresse avec `Pim.pimUrl(signals)` : `https://portal.azure.com/#@<tenant>/view/Microsoft_Azure_PIMCommon/ActivationMenuBlade/~/aadmigratedroles`, le tenant étant le premier signal GUID ou `*.onmicrosoft.com` (sinon pas de `#@`).
+2. « Éligible » : `chrome.tabs.create({ url })`.
+3. « Actif » : message `{ type: 'pimActive', url }` au service worker, qui crée l'onglet puis, au premier `status: 'complete'`, injecte `Pim.selectActiveTab` (`chrome.scripting.executeScript`). La fonction cherche pendant 30 s la liste d'onglets à 3 entrées (éligibles / actives / expirées) et clique la 2e : aucune adresse ne sélectionne cet onglet, et la position fonctionne dans toutes les langues du portail. Si la page de connexion Microsoft s'affiche d'abord, l'injection échoue (pas de permission sur `login.microsoftonline.com`) et la page reste sur *Affectations éligibles*.
+
+**Aucun appel Graph.** **Stockage** : lecture seule de `t<tabId>`.
+
+**UI.** Rangée `.pim-row` sous les pastilles : deux boutons pleine largeur, fond `#773adc` (violet de l'icône PIM du portail Azure, texte blanc 5,9:1).
+
+**Tests.** `pim/test.js` : adresse sans tenant, avec GUID (en minuscules), avec domaine `*.onmicrosoft.com`, nom d'affichage jamais repris dans l'adresse.
 
 ### 4.7 Settings Explainer
 
@@ -461,14 +484,14 @@ Le paramètre `l=` est un comportement **observé** du portail, **non documenté
 `popup.html` sert de popup (580 px) et de page d'options ouverte en onglet (`options_ui`). Captures : `docs/img/readme/<fr|en>/07-menu.jpg` (vue principale), `08-menu-parametres.jpg` et `09-menu-parametres-suite.jpg` (paramètres ouverts), `10-tenant-guard-couleurs.jpg` (choix de couleur).
 
 - **En-tête** : icône, titre, sélecteur **FR / EN** (`[data-lang]`, `aria-pressed`), bouton **⚙** (`#gear`).
-- **Vue principale** : une ligne de pastilles sans carte (`.strip` > `#active-list.chips`), une par fonction active : nom, description en infobulle (`title`), et une action rapide en icône dans la pastille si `ACTIONS[clé]` existe (`changeSnapshot` → 📋 journal). Set Tenant Language n'apparaît que par son action : bouton « 🌐 <LANGUE> » (section 4.6). Message `#none` si aucune fonction n'est active. Sous les pastilles, le bouton de rechargement `#reload-btn` (voir 5.2). Puis, si Tenant Guard est actif, les cartes « onglet actuel » (`#current` : signaux détectés, bouton « Référencer ») et « tenants référencés » (tableau, export, import, mes couleurs), modifiables sans passer par ⚙.
-- **Paramètres** (⚙ bascule `#settings`, affiché juste sous les pastilles) : bascules des fonctions avec description (`#toggles`, générées depuis `DEFAULTS` ; Settings Explainer en retrait sous Setting Inspector), carte « Carte de paramètre » (`.se-only`, délai avant fermeture de la carte, affichée dès qu'un des trois modules est actif), carte Set Tenant Language (`.pl-only`, deux listes) et carte « Affichage » avec « Positions par défaut ».
-- Les cartes `.tg-only` (onglet actuel et tenants) sont masquées si Tenant Guard est désactivé ; la carte `.pl-only` si Set Tenant Language l'est.
+- **Vue principale** : `.strip` en flex, sans carte. À gauche, la colonne `#pl-col` de Set Tenant Language (un bouton « 🌐 <LANGUE> » par préréglage, empilés, section 4.6). À droite, les pastilles `#active-list.chips`, une par fonction active sauf Set Tenant Language et PIM : nom, description en infobulle (`title`), et une action rapide en icône dans la pastille si `ACTIONS[clé]` existe (`changeSnapshot` → 📋 journal). Message `#none` si aucune fonction n'est active. Dessous, la rangée `.pim-row` (« 🔑 PIM éligible » / « 🔑 PIM actif », section 4.6 bis) et le bouton de rechargement `#reload-btn` (voir 5.2). Puis, si Tenant Guard est actif, les cartes « onglet actuel » (`#current` : signaux détectés, bouton « Référencer ») et « tenants référencés » (tableau, export, import, mes couleurs), modifiables sans passer par ⚙.
+- **Paramètres** (⚙ bascule `#settings`, affiché juste sous les pastilles) : bascules des fonctions avec description (`#toggles`, générées depuis `DEFAULTS` ; Settings Explainer en retrait sous Setting Inspector), carte « Carte de paramètre » (`.se-only`, délai avant fermeture de la carte, affichée dès qu'un des trois modules est actif), carte Set Tenant Language (`.pl-only`, Langue 1 et Langue 2, deux listes chacune) et carte « Affichage » avec « Positions par défaut ».
+- Les cartes `.tg-only` (onglet actuel et tenants) sont masquées si Tenant Guard est désactivé ; la colonne et la carte `.pl-only` si Set Tenant Language l'est ; la rangée `.pim-only` si le Raccourci PIM l'est.
 - Changer de langue appelle `setLang()`, pose le drapeau `sessionStorage` `langChanged` puis `location.reload()` : les textes de `tenant-guard/options.js` sont construits une seule fois, après `i18nReady` (langue enregistrée connue). Au rechargement, le drapeau est consommé et affiche `#reload-btn`.
 
 ### 5.2 Activation
 
-- Clé `chrome.storage.sync` **`features`** : `{ tenantGuard, asBuilt, settingInspector, settingsExplainer, oibRecommendations, assignmentLens, changeSnapshot, portalLanguage }`, booléens. Les trois modules de la carte de paramètre sont indépendants : la carte est enregistrée dès que l'un d'eux est actif (section 4.3).
+- Clé `chrome.storage.sync` **`features`** : `{ tenantGuard, asBuilt, settingInspector, settingsExplainer, oibRecommendations, assignmentLens, changeSnapshot, portalLanguage, pim }`, booléens (`portalLanguage` et `pim` : menu seulement, sans content script). Les trois modules de la carte de paramètre sont indépendants : la carte est enregistrée dès que l'un d'eux est actif (section 4.3).
 - Défauts : **tout à `true`**. L'objet `DEFAULTS` est dupliqué dans `background.js` et `popup.js` (commentaire « keep in sync »). Les valeurs stockées sont fusionnées sur les défauts, donc une nouvelle fonction est active par défaut chez les utilisateurs existants.
 - `popup.js` : chaque case générée écrit `features`, affiche le bouton de rechargement et redessine le menu.
 - `background.js` `apply()` : lit `features` et `lang`, **désenregistre tous** les scripts enregistrés, puis enregistre le marqueur `ui-lang` et ceux des fonctions actives (`SCRIPTS[clé]`, passés par `withI18n`). Une fonction sans entrée `SCRIPTS` (Set Tenant Language) n'enregistre rien. Si Tenant Guard est désactivé, le badge est vidé.
@@ -536,13 +559,14 @@ Toutes les UI injectées vivent dans un Shadow DOM (`:host { all: initial; color
 
 | Fonction | Lit un jeton ? | Où il vit | Transmis ? | Appels émis |
 |---|---|---|---|---|
-| Tenant Guard | Non (lit seulement les **noms** de clés MSAL) | — | — | Aucun |
+| Tenant Guard | Non (lit seulement les **noms** de clés MSAL et le `tenantId` de la session du shell M365) | — | — | Aucun |
 | As-Built | Oui, en-tête `Authorization` vers Graph | Variable de closure, par frame | Jamais : seul le claim `tid` passe dans `pong` ; les réponses relayées ne contiennent que statut + corps | GET uniquement, URL limitée à `graph.microsoft.com/(beta\|v1.0)/` |
 | Setting Inspector | Non | — | Seules les réponses JSON du portail, à la même fenêtre | Aucun |
 | Settings Explainer | Non | — | Comme Setting Inspector | Aucun vers Graph ; GET sans cookie de pages publiques `learn.microsoft.com/…/mdm/<page>` par le service worker (URL construite par lui) |
 | Assignment Lens | Oui, en-tête `Authorization` ou JWT `aud` Graph vu dans un `postMessage` du shell | Variable de closure, par frame | Jamais : le résultat posté au top est déjà résumé | GET uniquement, vers `graph.microsoft.com/` (nextLink vérifié) |
 | Change Snapshot | Oui, en-tête `Authorization` des écritures observées (page et workers `blob:`), décodé localement sans vérification de signature | Métadonnées de la requête en cours, le temps de la décoder | Jamais : seuls les claims `upn` et `tid` sortent du monde MAIN (rien pour un GET) | Aucun |
 | Set Tenant Language | Non | — | — | Aucun (seulement `chrome.tabs.update` de l'onglet actif) |
+| Raccourci PIM | Non | — | — | Aucun (`chrome.tabs.create` vers `portal.azure.com`, puis un clic d'onglet dans cette page) |
 
 Le jeton n'est jamais écrit dans `chrome.storage`, `localStorage`, la console, ni envoyé au service worker. Change Snapshot écrit seulement `upn` et `tid` dans ses entrées de journal. Les appels utilisent `credentials: 'omit'`. Comme le code tourne en MAIN world, il partage le contexte JavaScript du portail : la protection repose sur la portée de closure, pas sur une isolation du navigateur.
 
@@ -562,16 +586,18 @@ Le jeton n'est jamais écrit dans `chrome.storage`, `localStorage`, la console, 
 
 **Injection HTML.** Vérifié dans le code : les données (Graph, règles, signaux) sont insérées via `textContent`, `append(string)` ou `.value`. Les deux `innerHTML` présents (modale Tenant Guard, ligne du tableau dans `options.js`) sont des gabarits statiques, les valeurs étant posées ensuite par `textContent` / `.value`. La couleur d'une règle n'atteint le CSS que si elle matche `^#[0-9a-f]{6}$`. Les liens Learn ne sont rendus que s'ils commencent par `https://` (`rel="noopener noreferrer"`). L'export Word construit du HTML échappé par `htmlEscape` dans un fichier, pas dans le DOM. L'import de règles passe par `mergeRules` (filtrage et coercition des champs). Le dialogue et le journal Change Snapshot n'utilisent que `textContent` ; l'export CSV neutralise les formules tableur. Les traductions passent par les mêmes chemins (`textContent`, `title`).
 
-**Navigation (Set Tenant Language).** `chrome.tabs.update` n'est appelé que si `isPortal` valide l'URL de l'onglet actif (HTTPS, hôte exact `intune.microsoft.com`, `endpoint.microsoft.com`, `portal.azure.com` ou `entra.microsoft.com`) et que langue et format figurent dans les listes fermées `LANGUAGES` / `FORMATS`. Seul le paramètre `l` est modifié ; ni chemin, ni hôte, ni route `#` ne changent.
+**Navigation (Set Tenant Language).** `chrome.tabs.update` n'est appelé que si `isPortal` valide l'URL de l'onglet actif (HTTPS, hôte exact `intune.microsoft.com`, `endpoint.microsoft.com`, `portal.azure.com`, `entra.microsoft.com`, `security.microsoft.com` ou `purview.microsoft.com`) et que langue et format figurent dans les listes fermées `LANGUAGES` / `FORMATS`. Seul le paramètre `l` (ou `mkt` pour Defender / Purview) est modifié ; ni chemin, ni hôte, ni route `#` ne changent.
+
+**Navigation (Raccourci PIM).** L'adresse est fixe (`portal.azure.com`, blade PIM « Mes rôles ») ; seul le segment `#@<tenant>/` vient de l'état Tenant Guard, et seulement si c'est un GUID ou un domaine `*.onmicrosoft.com` (`pimUrl`), jamais un nom d'affichage.
 
 **Permissions.**
 
 | Permission | Pourquoi |
 |---|---|
-| `scripting` | `registerContentScripts` / `unregisterContentScripts` / `getRegisteredContentScripts` (background) ; `executeScript` pour « Positions par défaut » (popup) |
-| `storage` | `features`, `lang`, `portalLang`, `rules`, `customColors`, `explainer` (sync), `explainerLive`, `learn3:<lang>:<page>` et `e:<id>` (local), état par onglet (session) |
+| `scripting` | `registerContentScripts` / `unregisterContentScripts` / `getRegisteredContentScripts` (background) ; `executeScript` pour « Positions par défaut » (popup) et pour sélectionner l'onglet « Affectations actives » de PIM (background) |
+| `storage` | `features`, `lang`, `portalLangs`, `rules`, `customColors`, `explainer` (sync), `explainerLive`, `learn3:<lang>:<page>` et `e:<id>` (local), état par onglet (session) |
 | `unlimitedStorage` | Lève le quota de `chrome.storage.local` : journal Change Snapshot (`e:<id>`, avec JSON avant / après, raison donnée par `change-snapshot/README.md`) et cache `explainerLive` de la carte de paramètre |
-| `host_permissions` (12 origines : 11 portails + `learn.microsoft.com`, lu par Settings Explainer ; rien n'y est injecté, `background.js` filtre cette origine via `PORTALS`) | Injection des content scripts (marqueur `ui-lang` et Tenant Guard sur toutes ; Change Snapshot sur Intune / endpoint / `portal.azure.com` / `*.portal.azure.net` ; autres fonctions sur Intune / endpoint / `*.portal.azure.net`) et `executeScript` dans l'onglet actif ; lecture de `tab.url` de l'onglet actif par Set Tenant Language |
+| `host_permissions` (15 origines : 14 consoles d'administration + `learn.microsoft.com`, lu par Settings Explainer ; rien n'y est injecté, `background.js` filtre cette origine via `PORTALS`) | Injection des content scripts (marqueur `ui-lang` et Tenant Guard sur toutes ; Change Snapshot sur Intune / endpoint / `portal.azure.com` / `*.portal.azure.net` ; autres fonctions sur Intune / endpoint / `*.portal.azure.net`) et `executeScript` dans l'onglet actif ; lecture de `tab.url` de l'onglet actif par Set Tenant Language |
 
 Pas de permission `tabs` ni `activeTab` : `tabs.query`, `tabs.reload`, `tabs.update`, `tabs.create`, `tabs.sendMessage` et l'API `action` n'en ont pas besoin pour l'usage fait ici (`tab.url` est fourni pour les origines couvertes par `host_permissions`). `web_accessible_resources` expose `setting-inspector/data/*.json` et `settings-explainer/data/*.json` aux origines Intune / endpoint / `*.portal.azure.net`, et `change-snapshot/lib.js` à ces origines plus `portal.azure.com` (repli d'import de `content.js`). Une ressource web accessible permet à une page de détecter la présence de l'extension.
 
@@ -583,7 +609,7 @@ Pas de permission `tabs` ni `activeTab` : `tabs.query`, `tabs.reload`, `tabs.upd
 |---|---|---|---|
 | `chrome.storage.sync` | `features` | `popup.js` (écrit), `background.js` (lit) | `{ tenantGuard: bool, asBuilt: bool, settingInspector: bool, settingsExplainer: bool, oibRecommendations: bool, assignmentLens: bool, changeSnapshot: bool, portalLanguage: bool }` |
 | `chrome.storage.sync` | `lang` | `shared/i18n.js` (`setLang` écrit, `i18nReady` lit) ; lu aussi par `background.js` (marqueur `ui-lang`) et `journal.js` | `'fr'` ou `'en'` ; absent → langue du navigateur |
-| `chrome.storage.sync` | `portalLang` | Set Tenant Language (`popup.js`) | `{ lang: string, format: string }`, codes de `LANGUAGES` / `FORMATS` ; défaut `{ lang: 'en', format: 'en-us' }` |
+| `chrome.storage.sync` | `portalLangs` | Set Tenant Language (`popup.js`) | `[{ lang, format }, { lang, format }]`, codes de `LANGUAGES` / `FORMATS` ; défaut français puis anglais (l'ancienne clé `portalLang` devient la Langue 2) |
 | `chrome.storage.sync` | `rules` | Tenant Guard (`options.js` écrit, `content.js` lit) | `[{ match: string, label: string, color: '#rrggbb', prod: bool }]` |
 | `chrome.storage.sync` | `customColors` | Tenant Guard (`options.js`) | `['#rrggbb', …]`, 5 max |
 | `chrome.storage.session` | `t<tabId>` | Tenant Guard (`background.js` écrit, `options.js` lit) | `{ signals: string[], signal, label, color, prod: bool, detecting: bool }` ; supprimé à la fermeture de l'onglet |

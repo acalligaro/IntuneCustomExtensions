@@ -10,7 +10,7 @@ Extension Chrome / Edge (Manifest V3), boîte à outils pour le portail Microsof
 
 | Dossier | Extension | Rôle |
 |---|---|---|
-| [`tenant-compass/`](tenant-compass/README.md) ([English](tenant-compass/README.en.md)) | **Tenant Compass** | Tenant Guard, As-Built, carte de paramètre (Setting Inspector, Settings Explainer, OpenIntuneBaseline), Assignment Lens, Change Snapshot et Set Tenant Language dans une seule extension, activables séparément depuis le menu, en français ou en anglais |
+| [`tenant-compass/`](tenant-compass/README.md) ([English](tenant-compass/README.en.md)) | **Tenant Compass** | Tenant Guard, As-Built, carte de paramètre (Setting Inspector, Settings Explainer, OpenIntuneBaseline), Assignment Lens, Change Snapshot, Set Tenant Language et Raccourci PIM dans une seule extension, activables séparément depuis le menu, en français ou en anglais |
 
 Documentation technique de Tenant Compass : [`tenant-compass/ARCHITECTURE.md`](tenant-compass/ARCHITECTURE.md).
 

@@ -10,7 +10,7 @@ Chrome / Edge extension (Manifest V3), toolbox for the Microsoft Intune portal. 
 
 | Folder | Extension | Role |
 |---|---|---|
-| [`tenant-compass/`](tenant-compass/README.en.md) ([Français](tenant-compass/README.md)) | **Tenant Compass** | Tenant Guard, As-Built, setting card (Setting Inspector, Settings Explainer, OpenIntuneBaseline), Assignment Lens, Change Snapshot and Set Tenant Language in a single extension, each toggled separately from the menu, in French or English |
+| [`tenant-compass/`](tenant-compass/README.en.md) ([Français](tenant-compass/README.md)) | **Tenant Compass** | Tenant Guard, As-Built, setting card (Setting Inspector, Settings Explainer, OpenIntuneBaseline), Assignment Lens, Change Snapshot, Set Tenant Language and PIM shortcut in a single extension, each toggled separately from the menu, in French or English |
 
 Tenant Compass technical documentation (in French): [`tenant-compass/ARCHITECTURE.md`](tenant-compass/ARCHITECTURE.md).
 

@@ -29,6 +29,10 @@
     button:active { transform: scale(.97); }
     button.primary { background: var(--accent); color: #fff; }
     button.primary:hover { background: #106ebe; }
+    /* PIM: Microsoft's PIM icon purple (Azure portal, #773adc); white text 5.9:1 */
+    .pim-row { display: flex; gap: 8px; margin: 0 0 10px; }
+    button.pim { flex: 1; padding: 8px 12px; background: #773adc; color: #fff; }
+    button.pim:hover { background: #6430c4; }
     td button { padding: 4px 9px; background: none; color: var(--muted); }
     td button:hover { background: #fde7e9; color: #a4262c; }
     .pick { position: relative; }
@@ -78,10 +82,10 @@
     .chips > span::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #107c10; }
     .chips button { padding: 0 6px; margin-right: -6px; border-radius: 999px; background: #eff6fc; font-size: 12px; line-height: 18px; }
     .chips button:hover { background: #deecf9; }
-    /* Set Tenant Language: two buttons (language 1 / language 2), no chip around them */
-    .chips > span.solo { padding: 0; background: none; box-shadow: none; }
-    .chips > span.solo::before { content: none; }
-    .chips > span.solo button { margin: 0; padding: 2px 8px; font-weight: 600; font-size: 11px; color: #005a9e; box-shadow: 0 0 0 1px var(--line); }
+    /* Set Tenant Language: language 1 / language 2 stacked in a column left of the active features */
+    .strip { display: flex; gap: 8px; align-items: flex-start; }
+    .pl-col { display: flex; flex-direction: column; gap: 4px; flex: none; }
+    .pl-col button { padding: 3px 10px; font-size: 11px; line-height: 16px; box-shadow: 0 0 0 1px var(--line); }
     .pick-l { display: flex; flex-direction: column; gap: 3px; }
     select { padding: 6px 9px; border: 1px solid var(--line); border-radius: 9px; background: #faf9f8; font: inherit; }
     html.tab { background: #e9ebef; min-height: 100%; }
@@ -99,8 +103,15 @@
     <button type="button" id="gear" class="gear" data-i18n-title="menu.settings" aria-pressed="false">⚙</button>
   </header>
   <main>
-  <div class="strip" data-i18n-title="menu.active"><div id="active-list" class="chips"></div><span id="none" class="hint" data-i18n="menu.none" hidden></span><span id="pl-msg" class="hint"></span></div>
+  <div class="strip">
+    <div id="pl-col" class="pl-col pl-only" data-i18n-title="f.portalLanguage"></div>
+    <div data-i18n-title="menu.active"><div id="active-list" class="chips"></div><span id="none" class="hint" data-i18n="menu.none" hidden></span><span id="pl-msg" class="hint"></span></div>
+  </div>
   <button id="reload-btn" class="primary reload" data-i18n="menu.reloadBtn" hidden></button>
+  <div class="pim-row pim-only">
+    <button type="button" id="pim-eligible" class="pim" data-i18n="pim.eligible" data-i18n-title="pim.eligible.title"></button>
+    <button type="button" id="pim-active" class="pim" data-i18n="pim.active" data-i18n-title="pim.active.title"></button>
+  </div>
 
   <div id="settings" hidden>
   <section class="card">
@@ -167,6 +178,7 @@
   <script src="tenant-guard/lib.js"></script>
   <script src="tenant-guard/options.js"></script>
   <script src="portal-language/lib.js"></script>
+  <script src="pim/lib.js"></script>
   <script src="popup.js"></script>
 <!--⁣​​‌​‌​​​​​​‌​​‌​‍​⁣-->
 </body>

@@ -98,7 +98,7 @@ assert.throws(() => mergeRules(cur, []));
   const src = fs.readFileSync(path.join(__dirname, '..', 'background.js'), 'utf8').replace(/^importScripts.*$/m, '');
   let reg;
   const noop = { addListener() {} };
-  globalThis.chrome = { runtime: { getManifest: () => require('../manifest.json'), onInstalled: noop, onStartup: noop },
+  globalThis.chrome = { runtime: { getManifest: () => require('../manifest.json'), onInstalled: noop, onStartup: noop, onMessage: noop },
     storage: { onChanged: noop, sync: { get: async d => d } }, action: { setBadgeText() {} },
     scripting: { getRegisteredContentScripts: async () => [], unregisterContentScripts: async () => {}, registerContentScripts: async w => { reg = w; } } };
   new Function(src + ';return apply')()().then(() => {
