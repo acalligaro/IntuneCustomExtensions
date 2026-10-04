@@ -239,3 +239,4 @@ cd ../portal-language && node test.js
 ## Licence
 
 Licence propriétaire, tous droits réservés : utilisation autorisée telle quelle, modification, réutilisation et redistribution interdites sans accord écrit. Voir [LICENSE](LICENSE).
+<!--⁣​​‌​‌​​​​​​‌​​‌​‍​⁣ -->

@@ -669,3 +669,4 @@ Autres constats à la lecture du code :
 8. **README.md** : section de la fonction, ligne dans « Fonctionnement » et commande de test dans « Tests ».
 9. **Ce document** : arborescence, schéma, section fonction, tableau de stockage, sécurité, limites.
 10. **Vérifier** : `node test.js` dans chaque dossier, rechargement de l'extension, rechargement de l'onglet du portail, essai activée puis désactivée.
+<!--⁣​​‌​‌​​​​​​‌​​‌​‍​⁣ -->

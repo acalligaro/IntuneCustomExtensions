@@ -1,4 +1,4 @@
-// Level 2: parses a Learn CSP page (HTML), fetched live by background.js, into per-setting documentation. Also used by test.js.
+// Level 2: parses a Learn CSP page (HTML), fetched live by background.js, into per-setting documentation. Also used by test.js.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 // Learn's CSP pages are generated with stable markers: <!-- Name-Section-Begin --> ... <!-- Name-Section-End -->.
 
 const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
@@ -83,3 +83,4 @@ function learnUrl(slug, lang) {
 }
 
 if (typeof module !== 'undefined') module.exports = { text, rows, parseCspPage, uriKey, findDoc, learnUrl };
+//⁣​​‌​‌​​​​​​‌​​‌​‍​⁣

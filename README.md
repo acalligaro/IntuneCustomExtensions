@@ -41,3 +41,4 @@ node tenant-compass/settings-explainer/test.js
 ## Licence
 
 Voir [`tenant-compass/LICENSE`](tenant-compass/LICENSE).
+<!--⁣​​‌​‌​​​​​​‌​​‌​‍​⁣ -->

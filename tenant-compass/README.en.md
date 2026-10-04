@@ -237,3 +237,4 @@ cd ../portal-language && node test.js
 ## License
 
 Proprietary license, all rights reserved: use as is is allowed; modification, reuse and redistribution are forbidden without written consent. See [LICENSE](LICENSE).
+<!--⁣​​‌​‌​​​​​​‌​​‌​‍​⁣ -->

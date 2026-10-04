@@ -1,4 +1,4 @@
-// Imported by the service worker (after csp.js): fetches the Learn CSP page of a hovered setting (content scripts cannot, CORS),
+// Imported by the service worker (after csp.js): fetches the Learn CSP page of a hovered setting (content scripts cannot, CORS),⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 // parses it with csp.js and answers with that setting's documentation. Pages are cached 7 days in chrome.storage.local
 // (`learn2:<lang>:<page>`, prefix bumped with the parser), failures 1 minute in memory. Block-scoped: the service worker shares one global scope.
 {
@@ -52,3 +52,4 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   return true; // async reply
 });
 }
+//⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
