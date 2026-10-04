@@ -42,7 +42,7 @@ tenant-compass/
 ├── ARCHITECTURE.md               Ce document
 ├── LICENSE                       Licence propriétaire
 ├── icons/icon{16,32,48,128}.png  Icônes
-├── docs/img/readme/{fr,en}/        Captures du README (01 à 12) en français et en anglais, prises dans un tenant de test anonymisé (Contoso)
+├── docs/img/readme/{fr,en}/        Captures du README (01 à 15) en français et en anglais, prises dans un tenant de test anonymisé (Contoso)
 ├── shared/
 │   ├── drag.js                   Déplacement à la souris + mémorisation de position (MAIN world)
 │   ├── i18n.js                   Dictionnaires FR / EN du menu (60 clés), t(), applyI18n(), setLang(), i18nReady (popup uniquement)
