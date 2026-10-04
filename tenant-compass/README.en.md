@@ -138,6 +138,9 @@ Tenant detection, by priority: URL (`tid=`, `tenantId=`, `ctid=`, `#@domain`), d
 - **Masked secrets**: Android enrollment token and QR code content, Surface Hub account password, product key. Images (logos, QR code) are not exported.
 - **Entra console** (`entra.microsoft.com`, `portal.azure.com`): **As-Built Entra** panel, another list: Conditional Access, named locations, authentication strengths, authentication methods (one row per method), MDM and MAM automatic enrollment (mobility). The Entra portal's Graph token carries `Policy.Read.All`, which the Intune portal's does not: these objects are listed from Entra or Azure only.
 - **Conditional Access**: state (on, off, report-only), conditions, grant and session controls; included / excluded users, groups and roles in the **Assignments** table. IDs are replaced by names (users, groups, roles, apps, locations) and keywords spelled out ("All", "All trusted locations"...). Document titled "Detailed Design Document – Microsoft Entra", file `as-built-entra-<date>`. Read-only, with the signed-in account's rights.
+
+![As-Built Entra on the Conditional Access page: two Conditional Access policies and the Fido2 method checked at the top of the list, then authentication strengths and methods](docs/img/readme/en/17-as-built-entra.jpg)
+
 - Export mode: **One policy per file** (default) or all policies in a single file. **Copy MD** always copies a single Markdown block.
 - **Export scripts** (checked by default): downloads next to the document, decoded from Graph's Base64 (`.ps1` / `.sh`), the scripts, remediations (detection + remediation) and the PowerShell detection / requirement scripts of Win32 apps.
 - `.intunewin` files cannot be exported: Graph exposes no download URL for published app content (the storage URI only exists during upload, and the content is encrypted).
