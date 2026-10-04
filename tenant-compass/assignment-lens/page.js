@@ -221,7 +221,7 @@
 
   // Tenant Compass: As-Built visual style; button bottom-left above As-Built's, card above both buttons.
   const CSS = `
-    .p { position: fixed; left: 20px; bottom: 124px; z-index: 2147483000; width: 380px; max-height: 60vh;
+    .p { position: fixed; left: 20px; bottom: 124px; z-index: 2147483001; width: 380px; max-height: 60vh;
          display: flex; flex-direction: column; background: #fff; color: #1b1a19; color-scheme: light;
          border-radius: 16px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,.22), 0 0 0 1px rgba(0,0,0,.05);
          font: 13px/1.45 "Segoe UI Variable", "Segoe UI", system-ui, sans-serif; }

@@ -1,0 +1,412 @@
+{
+ "device_vendor_msft_policy_config_defender_allowarchivescanning": {
+  "explain": {
+   "fr": {
+    "what": "Indique à Microsoft Defender Antivirus s'il doit ouvrir et analyser le contenu des archives (.zip, .cab, etc.) lors des analyses. Valeur 1 (par défaut) : archives analysées ; valeur 0 : archives ignorées, sauf lors des analyses ciblées.",
+    "impact": "Rien de visible pour l'utilisateur. Avec 0, le contenu des archives n'est plus examiné lors des analyses classiques ; seules les analyses ciblées sur un fichier ou dossier précis scannent encore les archives.",
+    "pitfalls": [
+     "Si la protection contre les falsifications est active, la modification n'est pas appliquée.",
+     "« Non configuré » laisse Defender analyser les archives, mais un utilisateur peut alors désactiver ce comportement localement.",
+     "La GPO équivalente « Analyser les fichiers d'archive » a le même sens, mais elle écrit la valeur de registre DisableArchiveScanning (nom inversé) : attention en lisant le registre."
+    ],
+    "recommendation": "Autorisé (1), valeur imposée par les baselines de sécurité Intune Windows (23H2 à 25H2) et Defender for Endpoint.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-defender#allowarchivescanning",
+     "https://learn.microsoft.com/defender-endpoint/use-intune-config-manager-microsoft-defender-antivirus",
+     "https://learn.microsoft.com/intune/device-security/security-baselines/ref-windows-mdm-settings",
+     "https://learn.microsoft.com/intune/device-security/security-baselines/ref-defender-settings"
+    ]
+   },
+   "en": {
+    "what": "Tells Microsoft Defender Antivirus whether to open and scan archive contents (.zip, .cab, etc.) during scans. Value 1 (default): archives scanned; value 0: archives skipped, except during directed scans.",
+    "impact": "Nothing visible to the user. With 0, archive contents are no longer examined during regular scans; only directed scans on a specific file or folder still scan archives.",
+    "pitfalls": [
+     "When tamper protection is on, changes to this setting aren't applied.",
+     "\"Not configured\" keeps archive scanning on, but device users can then turn it off locally.",
+     "The GPO equivalent \"Scan archive files\" has the same polarity, but it writes the registry value DisableArchiveScanning (inverted name): mind the logic when reading the registry."
+    ],
+    "recommendation": "Allowed (1), the value enforced by the Intune Windows security baselines (23H2 to 25H2) and the Defender for Endpoint baseline.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-defender#allowarchivescanning",
+     "https://learn.microsoft.com/defender-endpoint/use-intune-config-manager-microsoft-defender-antivirus",
+     "https://learn.microsoft.com/intune/device-security/security-baselines/ref-windows-mdm-settings",
+     "https://learn.microsoft.com/intune/device-security/security-baselines/ref-defender-settings"
+    ]
+   }
+  }
+ },
+ "device_vendor_msft_policy_config_defender_allowrealtimemonitoring": {
+  "explain": {
+   "fr": {
+    "what": "Active ou coupe le service de protection en temps réel de Microsoft Defender Antivirus, qui analyse les fichiers et programmes au moment où ils sont ouverts ou exécutés. 1 (par défaut) : actif ; 0 : coupé.",
+    "impact": "Avec 0, la protection en temps réel est coupée : les logiciels malveillants ne sont plus détectés au moment où ils s'installent ou s'exécutent. Microsoft indique que cela réduit fortement la protection du poste.",
+    "pitfalls": [
+     "Avec la protection contre les falsifications active, la valeur n'est pas appliquée : la protection en temps réel reste activée même si la stratégie demande 0.",
+     "Côté GPO, l'équivalent est inversé (« Désactiver la protection en temps réel », DisableRealtimeMonitoring).",
+     "La surveillance de l'activité fichiers/programmes (AllowOnAccessProtection) et la surveillance du comportement sont des stratégies distinctes à vérifier aussi."
+    ],
+    "recommendation": "Autorisé (1), valeur des baselines de sécurité Intune Windows (23H2 à 25H2) et Defender for Endpoint ; ne jamais le couper sur une flotte de production.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-defender#allowrealtimemonitoring",
+     "https://learn.microsoft.com/defender-endpoint/tamper-protection-overview",
+     "https://learn.microsoft.com/intune/device-security/security-baselines/ref-windows-mdm-settings",
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-admx-microsoftdefenderantivirus#disablerealtimemonitoring",
+     "https://learn.microsoft.com/intune/device-security/security-baselines/ref-defender-settings"
+    ]
+   },
+   "en": {
+    "what": "Turns the Microsoft Defender Antivirus real-time protection service on or off; it scans files and programs as they are opened or run. 1 (default): on; 0: off.",
+    "impact": "With 0, real-time protection is off: malware is no longer detected as it installs or runs. Microsoft states this drastically reduces endpoint protection.",
+    "pitfalls": [
+     "With tamper protection on, the value isn't applied: real-time protection stays on even if the policy sets 0.",
+     "The GPO equivalent is inverted (\"Turn off real-time protection\", DisableRealtimeMonitoring).",
+     "File/program activity monitoring (AllowOnAccessProtection) and behavior monitoring are separate policies to check as well."
+    ],
+    "recommendation": "Allowed (1), the value in the Intune Windows security baselines (23H2 to 25H2) and the Defender for Endpoint baseline; never turn it off on a production fleet.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-defender#allowrealtimemonitoring",
+     "https://learn.microsoft.com/defender-endpoint/tamper-protection-overview",
+     "https://learn.microsoft.com/intune/device-security/security-baselines/ref-windows-mdm-settings",
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-admx-microsoftdefenderantivirus#disablerealtimemonitoring",
+     "https://learn.microsoft.com/intune/device-security/security-baselines/ref-defender-settings"
+    ]
+   }
+  }
+ },
+ "device_vendor_msft_policy_config_defender_allowcloudprotection": {
+  "explain": {
+   "fr": {
+    "what": "Contrôle l'adhésion du poste à Microsoft MAPS (protection cloud de Defender Antivirus). 1 (par défaut) : Defender interroge le cloud Microsoft sur les fichiers suspects et lui remonte les détections ; 0 : protection cloud coupée.",
+    "impact": "Transparent pour l'utilisateur. Avec 0, le poste ne bénéficie plus de la détection rapide des nouvelles menaces ni des fonctions Defender for Endpoint qui dépendent du cloud.",
+    "pitfalls": [
+     "« Niveau de protection cloud » (CloudBlockLevel) n'a d'effet que si la protection cloud est activée.",
+     "Activer la protection contre les falsifications depuis le portail Defender active aussi la protection cloud (plateforme 4.18.2111.5+). Une fois active, elle maintient la protection cloud et bloque toute modification de ce paramètre."
+    ],
+    "recommendation": "Autorisé (1), valeur des baselines de sécurité Intune Windows (23H2 à 25H2) et Defender for Endpoint ; Microsoft recommande de garder la protection cloud active.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-defender#allowcloudprotection",
+     "https://learn.microsoft.com/defender-endpoint/use-intune-config-manager-microsoft-defender-antivirus",
+     "https://learn.microsoft.com/defender-endpoint/tamper-protection-overview",
+     "https://learn.microsoft.com/intune/device-security/security-baselines/ref-windows-mdm-settings",
+     "https://learn.microsoft.com/intune/device-security/security-baselines/ref-defender-settings"
+    ]
+   },
+   "en": {
+    "what": "Controls the device's membership in Microsoft MAPS (Defender Antivirus cloud-delivered protection). 1 (default): Defender queries the Microsoft cloud about suspicious files and reports detections; 0: cloud protection off.",
+    "impact": "Transparent to the user. With 0, the device loses fast detection of new threats and the Defender for Endpoint features that only work with cloud protection.",
+    "pitfalls": [
+     "\"Cloud-delivered protection level\" (CloudBlockLevel) only has an effect when cloud protection is on.",
+     "Turning on tamper protection from the Defender portal also turns on cloud protection (platform 4.18.2111.5+). Once on, it keeps cloud protection enabled and blocks changes to this setting."
+    ],
+    "recommendation": "Allowed (1), the value in the Intune Windows security baselines (23H2 to 25H2) and the Defender for Endpoint baseline; Microsoft recommends keeping cloud protection on.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-defender#allowcloudprotection",
+     "https://learn.microsoft.com/defender-endpoint/use-intune-config-manager-microsoft-defender-antivirus",
+     "https://learn.microsoft.com/defender-endpoint/tamper-protection-overview",
+     "https://learn.microsoft.com/intune/device-security/security-baselines/ref-windows-mdm-settings",
+     "https://learn.microsoft.com/intune/device-security/security-baselines/ref-defender-settings"
+    ]
+   }
+  }
+ },
+ "device_vendor_msft_policy_config_update_allowautoupdate": {
+  "explain": {
+   "fr": {
+    "what": "Définit le comportement de Windows Update pour la recherche, le téléchargement, l'installation et le redémarrage : 0 notifier avant téléchargement, 1 installer puis laisser planifier le redémarrage, 2 installer et redémarrer (défaut), 3 à heure fixe, 4 sans contrôle utilisateur, 5 désactivé.",
+    "impact": "Détermine si l'utilisateur voit des notifications, peut planifier le redémarrage ou subit un redémarrage automatique hors utilisation. Avec 4, la page Windows Update passe en lecture seule ; avec 5, plus de mises à jour automatiques.",
+    "pitfalls": [
+     "Les échéances (ConfigureDeadlineForQualityUpdates / ForFeatureUpdates) font ignorer les réglages de téléchargement, d'installation et de redémarrage de ce paramètre.",
+     "Même CSP que « Comportement de mise à jour automatique » des anneaux de mise à jour : le définir aussi en Settings Catalog avec une autre valeur provoque un conflit signalé dans Intune.",
+     "La valeur 5 coupe les mises à jour automatiques, y compris de sécurité : la doc CSP réserve ce type de configuration aux systèmes sous contrainte réglementaire.",
+     "Avec Windows Autopatch, les valeurs 0 et 5 sont signalées comme mauvaise configuration : Autopatch ne peut plus gérer les mises à jour (utiliser 1 à 4 ou Non configuré)."
+    ],
+    "recommendation": "Installation et redémarrage automatiques (2), combinés à des échéances et des heures d'activité ; pas de baseline de sécurité Microsoft pour ce paramètre.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-update#allowautoupdate",
+     "https://learn.microsoft.com/intune/device-updates/windows/ref-update-ring-settings",
+     "https://learn.microsoft.com/troubleshoot/mem/intune/device-protection/troubleshoot-update-rings"
+    ]
+   },
+   "en": {
+    "what": "Sets how Windows Update scans, downloads, installs and restarts: 0 notify before download, 1 auto install then user schedules restart, 2 auto install and restart (default), 3 at a scheduled time, 4 without user control, 5 off.",
+    "impact": "Decides whether the user sees notifications, can schedule the restart, or gets an automatic restart when idle. With 4 the Windows Update page becomes read-only; with 5 there are no automatic updates.",
+    "pitfalls": [
+     "Deadline policies (ConfigureDeadlineForQualityUpdates / ForFeatureUpdates) make the download, install and restart behavior of this setting ignored.",
+     "Same CSP as the update ring \"Automatic update behavior\": also setting it in Settings Catalog with a different value causes a conflict reported in Intune.",
+     "Value 5 turns off automatic updates, security updates included: the CSP doc reserves this kind of configuration for systems under regulatory compliance.",
+     "With Windows Autopatch, values 0 and 5 are flagged as misconfigured: Autopatch can no longer manage updates (use 1 to 4 or Not configured)."
+    ],
+    "recommendation": "Auto install and restart (2), combined with deadlines and active hours; there is no Microsoft security baseline value for this setting.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-update#allowautoupdate",
+     "https://learn.microsoft.com/intune/device-updates/windows/ref-update-ring-settings",
+     "https://learn.microsoft.com/troubleshoot/mem/intune/device-protection/troubleshoot-update-rings"
+    ]
+   }
+  }
+ },
+ "device_vendor_msft_policy_config_system_allowtelemetry": {
+  "explain": {
+   "fr": {
+    "what": "Fixe le niveau de données de diagnostic que Windows envoie à Microsoft (0 Désactivé, anciennement « Sécurité » ; 1 Requises ; 3 Facultatives). Ne couvre que l'OS et les composants Windows, pas les applications installées par l'entreprise.",
+    "impact": "L'utilisateur ne peut plus augmenter le niveau dans Paramètres. Avec la valeur 1, l'option « Données de diagnostic facultatives » est grisée.",
+    "pitfalls": [
+     "La valeur 0 (Sécurité) n'est prise en charge que sur Enterprise, Education et Server : sur Pro, elle équivaut à 1.",
+     "À 0, aucune information Windows Update n'est envoyée : Windows Update for Business reports exige au minimum le niveau Requises (1), tout comme les rapports et protections de déploiement de Windows Autopatch.",
+     "Pour empêcher l'utilisateur de modifier ses choix dans Paramètres, ajoutez la stratégie System/ConfigureTelemetryOptInSettingsUx.",
+     "Existe en portée Appareil et Utilisateur : si les deux sont configurées, la valeur la plus restrictive s'applique."
+    ],
+    "recommendation": "1 (Requises) : minimum exigé par Windows Update for Business reports et Windows Autopatch. Microsoft recommande toutefois 3 (Facultatives) sur Windows 11 pour des rapports plus complets.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-system#allowtelemetry",
+     "https://learn.microsoft.com/windows/privacy/configure-windows-diagnostic-data-in-your-organization",
+     "https://learn.microsoft.com/windows/deployment/update/wufb-reports-prerequisites"
+    ]
+   },
+   "en": {
+    "what": "Sets how much diagnostic data Windows sends to Microsoft (0 Off, formerly \"Security\"; 1 Required; 3 Optional). It only covers the OS and Windows components, not apps your organization installs.",
+    "impact": "Users can no longer raise the level in Settings. At value 1, the \"Optional diagnostic data\" control is disabled.",
+    "pitfalls": [
+     "Value 0 (Security) is only supported on Enterprise, Education and Server; on Pro it behaves like 1.",
+     "At 0, no Windows Update information is sent: Windows Update for Business reports needs at least Required (1), as do Windows Autopatch reports and deployment protections.",
+     "To stop users from changing diagnostic settings in Settings, also set System/ConfigureTelemetryOptInSettingsUx.",
+     "Exists at both Device and User scope: if both are set, the more restrictive value applies."
+    ],
+    "recommendation": "1 (Required): the minimum for Windows Update for Business reports and Windows Autopatch. Microsoft recommends 3 (Optional) on Windows 11 for richer reporting, though it is not required.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-system#allowtelemetry",
+     "https://learn.microsoft.com/windows/privacy/configure-windows-diagnostic-data-in-your-organization",
+     "https://learn.microsoft.com/windows/deployment/update/wufb-reports-prerequisites"
+    ]
+   }
+  }
+ },
+ "device_vendor_msft_policy_config_experience_allowcortana": {
+  "explain": {
+   "fr": {
+    "what": "Autorise (1, par défaut) ou bloque (0) Cortana sur le poste. Équivaut à la GPO « Allow Cortana » (Composants Windows > Rechercher).",
+    "impact": "À 0, Cortana est désactivé. La recherche Windows reste disponible pour trouver fichiers et applications sur le poste.",
+    "pitfalls": [
+     "Non configuré revient à autoriser Cortana : il faut explicitement mettre 0 pour le bloquer.",
+     "Cortana dans Windows (application autonome) est déprécié depuis juin 2023 ; ce paramètre ne concerne pas Cortana dans Outlook mobile, Teams mobile ou Teams Rooms."
+    ],
+    "recommendation": "0 (Bloquer) sur une flotte gérée : Cortana dans Windows est déprécié et la recherche locale continue de fonctionner.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-experience#allowcortana",
+     "https://learn.microsoft.com/windows/whats-new/deprecated-features"
+    ]
+   },
+   "en": {
+    "what": "Allows (1, default) or blocks (0) Cortana on the device. Maps to the \"Allow Cortana\" GPO (Windows Components > Search).",
+    "impact": "At 0, Cortana is turned off. Windows search still works to find files and apps on the device.",
+    "pitfalls": [
+     "Not configured means Cortana is allowed: you must explicitly set 0 to block it.",
+     "Cortana in Windows as a standalone app has been deprecated since June 2023; this setting does not cover Cortana in Outlook mobile, Teams mobile or Teams Rooms."
+    ],
+    "recommendation": "0 (Block) on a managed fleet: Cortana in Windows is deprecated and local search keeps working.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-experience#allowcortana",
+     "https://learn.microsoft.com/windows/whats-new/deprecated-features"
+    ]
+   }
+  }
+ },
+ "device_vendor_msft_policy_config_camera_allowcamera": {
+  "explain": {
+   "fr": {
+    "what": "Active (1, par défaut) ou désactive (0) les périphériques caméra au niveau du poste. Équivaut à la GPO « Allow Use of Camera » (Composants Windows > Caméra).",
+    "impact": "À 0, les périphériques caméra du poste sont désactivés : la caméra n'est plus disponible, y compris pour la visio.",
+    "pitfalls": [
+     "Le blocage est global au poste, pas par application. Pour filtrer les applis Windows, utilisez plutôt Privacy/LetAppsAccessCamera.",
+     "Non configuré revient à autoriser la caméra."
+    ],
+    "recommendation": "1 (Autoriser) pour un parc bureautique standard, la visio en dépend ; ne bloquer que sur des postes à usage restreint (kiosque, zones sensibles).",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-camera#allowcamera",
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-privacy#letappsaccesscamera"
+    ]
+   },
+   "en": {
+    "what": "Enables (1, default) or disables (0) camera devices on the whole machine. Maps to the \"Allow Use of Camera\" GPO (Windows Components > Camera).",
+    "impact": "At 0, the device's camera devices are disabled, so the camera is no longer available, including for video calls.",
+    "pitfalls": [
+     "The block is device-wide, not per app. To control Windows apps individually, use Privacy/LetAppsAccessCamera instead.",
+     "Not configured means the camera is allowed."
+    ],
+    "recommendation": "1 (Allow) for a standard office fleet, as video meetings depend on it; block only on restricted-use devices (kiosks, sensitive areas).",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-camera#allowcamera",
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-privacy#letappsaccesscamera"
+    ]
+   }
+  }
+ },
+ "device_vendor_msft_policy_config_devicelock_devicepasswordenabled": {
+  "explain": {
+   "fr": {
+    "what": "Active le verrouillage du poste par mot de passe (stratégies DeviceLock de type EAS). C'est la stratégie parente des autres règles DeviceLock : longueur, complexité, tentatives, verrouillage après inactivité.",
+    "impact": "Une fois activée, les exigences DeviceLock s'appliquent via le moteur EAS : les comptes locaux (utilisateurs et administrateurs) devront changer leur mot de passe à la prochaine connexion. La complexité n'est pas prise en charge pour les comptes de domaine.",
+    "pitfalls": [
+     "Valeur inversée : 0 = activé, 1 = désactivé (défaut).",
+     "Les stratégies MinDevicePasswordLength, AllowSimpleDevicePassword, AlphanumericDevicePasswordRequired, MaxDevicePasswordFailedAttempts, MaxInactivityTimeDeviceLock et MinDevicePasswordComplexCharacters ne s'appliquent que si elle vaut 0.",
+     "À 0, Windows fixe implicitement MinDevicePasswordLength à 4 et MinDevicePasswordComplexCharacters à 1 ; à 1, ces deux valeurs passent à 0.",
+     "À 1 (désactivé), ne configurez aucune autre stratégie DeviceLock de type EAS dans le même profil : Microsoft indique qu'elle doit alors être la seule définie.",
+     "Comptes AD : leur mot de passe suit la stratégie du domaine (contrôleurs de domaine), la complexité DeviceLock n'est pas prise en charge pour eux. Le conflit possible avec les GPO « Stratégie de mot de passe » porte sur les comptes locaux ; DevicePasswordExpiration n'est pas couvert par MDMWinsOverGP."
+    ],
+    "recommendation": "0 (Activé), comme dans les baselines de sécurité Windows Intune (23H2, 24H2, 25H2), qui y associent un historique de 24 mots de passe et une longueur minimale de 14.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-devicelock#devicepasswordenabled",
+     "https://learn.microsoft.com/intune/device-security/security-baselines/ref-windows-mdm-settings"
+    ]
+   },
+   "en": {
+    "what": "Turns on device lock by password (EAS-style DeviceLock policies). It is the parent policy for the other DeviceLock rules: length, complexity, failed attempts, inactivity lock.",
+    "impact": "Once enabled, DeviceLock requirements are applied by the EAS engine: all local user and admin accounts must change their password at next sign-in. Complexity is not supported for domain accounts.",
+    "pitfalls": [
+     "Inverted value: 0 = enabled, 1 = disabled (default).",
+     "MinDevicePasswordLength, AllowSimpleDevicePassword, AlphanumericDevicePasswordRequired, MaxDevicePasswordFailedAttempts, MaxInactivityTimeDeviceLock and MinDevicePasswordComplexCharacters only apply when it is set to 0.",
+     "At 0, Windows implicitly sets MinDevicePasswordLength to 4 and MinDevicePasswordComplexCharacters to 1; at 1, both are set to 0.",
+     "At 1 (disabled), don't configure other EAS DeviceLock policies alongside it: Microsoft states it should then be the only one set.",
+     "AD accounts follow the domain password policy (domain controllers); DeviceLock complexity isn't supported for them. A conflict with \"Password Policy\" GPOs concerns local accounts; DevicePasswordExpiration isn't covered by MDMWinsOverGP."
+    ],
+    "recommendation": "0 (Enabled), as in the Intune Windows security baselines (23H2, 24H2, 25H2), which pair it with a 24-password history and a 14-character minimum length.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-devicelock#devicepasswordenabled",
+     "https://learn.microsoft.com/intune/device-security/security-baselines/ref-windows-mdm-settings"
+    ]
+   }
+  }
+ },
+ "device_vendor_msft_bitlocker_requiredeviceencryption": {
+  "explain": {
+   "fr": {
+    "what": "Demande à BitLocker de chiffrer le disque système et les disques fixes chiffrables du poste. À 1, Windows vérifie l'état de chiffrement et lance le chiffrement, de façon silencieuse ou avec assistant selon AllowWarningForOtherDiskEncryption.",
+    "impact": "Sans les réglages du mode silencieux, l'utilisateur reçoit une invite pour lancer l'assistant BitLocker. Repasser à 0 ne déchiffre rien : les volumes déjà chiffrés le restent.",
+    "pitfalls": [
+     "Chiffrement silencieux : il faut aussi AllowWarningForOtherDiskEncryption à 0, et AllowStandardUserEncryption à 1 si les utilisateurs sont standards.",
+     "Prérequis du silencieux : TPM 1.2+, UEFI natif, Secure Boot, WinRE actif, poste joint ou hybride Entra. Un PIN ou une clé de démarrage TPM exigé le bloque. Microsoft conseille la stratégie Sécurité du point de terminaison > Chiffrement de disque plutôt que le catalogue pour le silencieux.",
+     "Les paramètres BitLocker ne s'appliquent qu'au démarrage du chiffrement : un disque déjà chiffré n'est pas rechiffré si la méthode change."
+    ],
+    "recommendation": "Activé (1), avec les réglages du mode silencieux. La baseline Defender for Endpoint d'Intune (y compris 24H1) l'active aussi, mais laisse l'avertissement activé et autorise le PIN TPM : vérifiez les conflits avec le mode silencieux.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/bitlocker-csp#requiredeviceencryption",
+     "https://learn.microsoft.com/intune/device-configuration/endpoint-security/encrypt-bitlocker-windows#configure-silent-bitlocker-encryption",
+     "https://learn.microsoft.com/troubleshoot/windows-client/windows-security/enforcing-bitlocker-policies-by-using-intune-known-issues"
+    ]
+   },
+   "en": {
+    "what": "Tells BitLocker to encrypt the OS drive and encryptable fixed drives. When set to 1, Windows checks enforcement status and starts encryption, silently or through the wizard depending on AllowWarningForOtherDiskEncryption.",
+    "impact": "Without the silent-encryption settings, the user gets a prompt to run the BitLocker wizard. Setting it back to 0 doesn't decrypt anything: encrypted volumes stay encrypted.",
+    "pitfalls": [
+     "Silent encryption also needs AllowWarningForOtherDiskEncryption = 0, plus AllowStandardUserEncryption = 1 when users are standard users.",
+     "Silent prerequisites: TPM 1.2+, native UEFI, Secure Boot, WinRE enabled, Entra joined or hybrid joined. A required TPM startup PIN or key blocks it. Microsoft recommends the Endpoint security > Disk encryption profile over Settings Catalog for silent enablement.",
+     "BitLocker settings only apply when encryption starts: an already encrypted drive isn't re-encrypted if the method changes."
+    ],
+    "recommendation": "Enabled (1), together with the silent-encryption settings. The Intune Defender for Endpoint baseline (24H1 included) also enables it, but keeps the warning on and allows a TPM PIN: check for conflicts with silent encryption.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/bitlocker-csp#requiredeviceencryption",
+     "https://learn.microsoft.com/intune/device-configuration/endpoint-security/encrypt-bitlocker-windows#configure-silent-bitlocker-encryption",
+     "https://learn.microsoft.com/troubleshoot/windows-client/windows-security/enforcing-bitlocker-policies-by-using-intune-known-issues"
+    ]
+   }
+  }
+ },
+ "device_vendor_msft_laps_policies_backupdirectory": {
+  "explain": {
+   "fr": {
+    "what": "Indique à Windows LAPS où sauvegarder le mot de passe du compte admin local géré : 0 = désactivé, 1 = Microsoft Entra ID, 2 = Active Directory. Valeur par défaut : 0.",
+    "impact": "À 0, Windows LAPS ignore tous les autres paramètres LAPS : aucun mot de passe n'est géré ni sauvegardé. À 1 ou 2, le mot de passe est renouvelé et devient consultable dans l'annuaire choisi.",
+    "pitfalls": [
+     "Mode Entra : il faut d'abord activer LAPS dans les paramètres d'appareils Entra, sinon le poste ne peut pas y publier le mot de passe (pas requis pour un poste hybride).",
+     "Le choix doit correspondre au type de jonction : un poste joint Entra seul ne sauvegarde pas dans AD. Un seul annuaire possible, jamais les deux.",
+     "La stratégie CSP Intune prend le pas sur les GPO et le LAPS legacy. Cibler le même compte avec Windows LAPS et le LAPS legacy n'est pas supporté."
+    ],
+    "recommendation": "1 (Entra ID) pour les postes joints Entra ; 2 (AD) seulement si l'exploitation hybride repose encore sur AD. Une seule stratégie LAPS par poste, ciblée sur des groupes d'appareils.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/laps-csp",
+     "https://learn.microsoft.com/windows-server/identity/laps/laps-management-policy-settings",
+     "https://learn.microsoft.com/intune/device-security/laps/overview"
+    ]
+   },
+   "en": {
+    "what": "Tells Windows LAPS where to back up the managed local admin password: 0 = disabled, 1 = Microsoft Entra ID, 2 = Active Directory. Default is 0.",
+    "impact": "At 0, Windows LAPS ignores every other LAPS setting: no password is managed or backed up. At 1 or 2, the password is rotated and becomes retrievable from the chosen directory.",
+    "pitfalls": [
+     "Entra mode: LAPS must first be enabled in Entra device settings, or the device can't post its password (not required for hybrid joined devices).",
+     "The choice must match the join type: an Entra-only joined device can't back up to AD. One directory only, never both.",
+     "Intune CSP policy overrides GPO and legacy LAPS. Targeting the same account with Windows LAPS and legacy LAPS isn't supported."
+    ],
+    "recommendation": "1 (Entra ID) for Entra joined devices; 2 (AD) only where hybrid operations still rely on AD. One LAPS policy per device, assigned to device groups.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/laps-csp",
+     "https://learn.microsoft.com/windows-server/identity/laps/laps-management-policy-settings",
+     "https://learn.microsoft.com/intune/device-security/laps/overview"
+    ]
+   }
+  }
+ },
+ "device_vendor_msft_laps_policies_passwordagedays": {
+  "explain": {
+   "fr": {
+    "what": "Fixe l'âge maximal, en jours, du mot de passe du compte admin local géré par Windows LAPS. Au-delà, LAPS génère un nouveau mot de passe et le sauvegarde. Par défaut : 30 jours.",
+    "impact": "Rien de visible pour l'utilisateur. Côté support, le mot de passe récupéré dans Entra ou AD change à chaque rotation.",
+    "pitfalls": [
+     "Plage dépendante de BackupDirectory : 1 à 365 jours vers AD, mais 7 jours minimum vers Entra ID.",
+     "Modifier la valeur ne change pas l'expiration du mot de passe actuel et ne déclenche pas de rotation : l'effet arrive à la prochaine rotation.",
+     "Sans effet si BackupDirectory est à 0 (désactivé)."
+    ],
+    "recommendation": "Garder 30 jours (valeur par défaut Windows LAPS), à réduire si la politique de sécurité interne l'exige, sans descendre sous 7 en mode Entra.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/laps-csp",
+     "https://learn.microsoft.com/windows-server/identity/laps/laps-management-policy-settings"
+    ]
+   },
+   "en": {
+    "what": "Sets the maximum age, in days, of the local admin password managed by Windows LAPS. Once reached, LAPS generates a new password and backs it up. Default: 30 days.",
+    "impact": "Nothing visible to the end user. For support, the password retrieved from Entra or AD changes at each rotation.",
+    "pitfalls": [
+     "Range depends on BackupDirectory: 1 to 365 days for AD, but at least 7 days for Entra ID.",
+     "Changing the value doesn't alter the current password's expiration or trigger a rotation: it takes effect at the next rotation.",
+     "No effect when BackupDirectory is 0 (disabled)."
+    ],
+    "recommendation": "Keep 30 days (Windows LAPS default); shorten it only if internal policy requires it, never below 7 in Entra mode.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/laps-csp",
+     "https://learn.microsoft.com/windows-server/identity/laps/laps-management-policy-settings"
+    ]
+   }
+  }
+ },
+ "device_vendor_msft_passportforwork_{tenantid}_policies_usepassportforwork": {
+  "explain": {
+   "fr": {
+    "what": "Active ou désactive le provisionnement de Windows Hello for Business pour tous les utilisateurs du poste, pour le tenant indiqué. Activé ou non configuré : provisionné ; désactivé : jamais provisionné.",
+    "impact": "Activé, l'utilisateur est invité à créer un PIN après sa connexion. Désactivé, pas d'invite WHfB : connexion par mot de passe ou autre méthode.",
+    "pitfalls": [
+     "La stratégie Hello du tenant (Inscription Windows) ne s'applique qu'à l'enrôlement et à tous les postes ; ses changements ne touchent pas les postes déjà enrôlés.",
+     "WHfB est activé par défaut sur les postes joints Entra : pour le bloquer via stratégie, utilisez l'ESP pour qu'elle arrive avant l'ouverture de session.",
+     "Ordre de priorité : GPO utilisateur, GPO ordinateur, CSP utilisateur, puis CSP device. Une GPO ou stratégie utilisateur contraire l'emporte."
+    ],
+    "recommendation": "Activé (true), via une stratégie ciblée sur un groupe, avec la stratégie tenant désactivée : c'est le schéma décrit par Microsoft pour maîtriser le déploiement.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/passportforwork-csp",
+     "https://learn.microsoft.com/windows/security/identity-protection/hello-for-business/configure"
+    ]
+   },
+   "en": {
+    "what": "Turns Windows Hello for Business provisioning on or off for all users of the device, for the given tenant. Enabled or not configured: provisioned; disabled: never provisioned.",
+    "impact": "When enabled, users are prompted to create a PIN after sign-in. When disabled, no WHfB prompt: sign-in stays password or another method.",
+    "pitfalls": [
+     "The tenant-wide WHfB policy (Windows enrollment) only applies at enrollment, to all devices; later changes don't reach enrolled devices.",
+     "WHfB is on by default for Entra joined devices: to block it by policy, use the ESP so the policy lands before the user reaches the desktop.",
+     "Precedence: user GPO, computer GPO, user CSP, then device CSP. A conflicting GPO or user-scoped policy wins."
+    ],
+    "recommendation": "Enabled (true), through a group-targeted policy with the tenant-wide policy disabled: the pattern Microsoft describes for a controlled rollout.",
+    "sources": [
+     "https://learn.microsoft.com/windows/client-management/mdm/passportforwork-csp",
+     "https://learn.microsoft.com/windows/security/identity-protection/hello-for-business/configure"
+    ]
+   }
+  }
+ }
+}

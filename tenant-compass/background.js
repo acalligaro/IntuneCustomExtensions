@@ -1,13 +1,15 @@
 // Registers the content scripts of the enabled features only, so a disabled feature injects nothing.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
-importScripts('tenant-guard/background.js', 'change-snapshot/background.js');
+importScripts('tenant-guard/background.js', 'change-snapshot/background.js', 'settings-explainer/csp.js', 'settings-explainer/background.js');
 
+// Portals only: host_permissions also holds learn.microsoft.com (Settings Explainer reads its CSP pages), where nothing is injected.
+const PORTALS = chrome.runtime.getManifest().host_permissions.filter(h => !h.includes('learn.microsoft.com'));
 const CS_MATCHES = ['https://intune.microsoft.com/*', 'https://endpoint.microsoft.com/*', 'https://portal.azure.com/*', 'https://*.portal.azure.net/*'];
 
 // Each feature = one or more content scripts (ids must be unique across features).⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 const SCRIPTS = {
   tenantGuard: [{
     id: 'tenant-guard',
-    matches: chrome.runtime.getManifest().host_permissions,
+    matches: PORTALS,
     js: ['tenant-guard/lib.js', 'tenant-guard/content.js'],
     allFrames: true,
     runAt: 'document_idle',
@@ -22,6 +24,7 @@ const SCRIPTS = {
   }],
   settingInspector: [{
     id: 'setting-inspector-hook',
+    i18n: false,
     matches: ['https://intune.microsoft.com/*', 'https://endpoint.microsoft.com/*', 'https://*.portal.azure.net/*'],
     js: ['setting-inspector/page-hook.js'],
     allFrames: true,
@@ -31,6 +34,23 @@ const SCRIPTS = {
     id: 'setting-inspector',
     matches: ['https://intune.microsoft.com/*', 'https://endpoint.microsoft.com/*', 'https://*.portal.azure.net/*'],
     js: ['setting-inspector/lib.js', 'setting-inspector/content.js'],
+    allFrames: true,
+    runAt: 'document_start',
+  }],
+  // Sub-option of Setting Inspector, usable on its own. Its card includes everything Setting Inspector shows,
+  // so when both are on only Settings Explainer is injected (one card per hover).
+  settingsExplainer: [{
+    id: 'settings-explainer-hook',
+    i18n: false,
+    matches: ['https://intune.microsoft.com/*', 'https://endpoint.microsoft.com/*', 'https://*.portal.azure.net/*'],
+    js: ['settings-explainer/page-hook.js'],
+    allFrames: true,
+    runAt: 'document_start',
+    world: 'MAIN',
+  }, {
+    id: 'settings-explainer',
+    matches: ['https://intune.microsoft.com/*', 'https://endpoint.microsoft.com/*', 'https://*.portal.azure.net/*'],
+    js: ['settings-explainer/lib.js', 'settings-explainer/content.js'],
     allFrames: true,
     runAt: 'document_start',
   }],
@@ -44,6 +64,7 @@ const SCRIPTS = {
   }],
   changeSnapshot: [{
     id: 'change-snapshot-hook',
+    i18n: false,
     matches: CS_MATCHES,
     js: ['change-snapshot/lib.js', 'change-snapshot/page.js'],
     allFrames: true,
@@ -52,27 +73,35 @@ const SCRIPTS = {
   }, {
     id: 'change-snapshot',
     matches: CS_MATCHES,
-    js: ['change-snapshot/lib.js', 'change-snapshot/content.js'],
+    // No lib.js here: listed for the MAIN hook too, Chrome would inject it in one world only and page.js, which has no
+    // fallback, could lose it. content.js loads it with import() (web_accessible_resources).
+    js: ['change-snapshot/content.js'],
     allFrames: true,
     runAt: 'document_start',
   }],
 };
-const DEFAULTS = { tenantGuard: true, asBuilt: true, settingInspector: true, assignmentLens: true, changeSnapshot: true, portalLanguage: true }; // portalLanguage: popup-only, no content script
+const DEFAULTS = { tenantGuard: true, asBuilt: true, settingInspector: true, settingsExplainer: true, assignmentLens: true, changeSnapshot: true, portalLanguage: true }; // portalLanguage: popup-only, no content script
 
 // UI language of the in-page features: a marker script sets <html data-tenant-compass-lang>, read by shared/i18n-page.js
 // in every world. Each feature script also gets the shared helper and its own dictionary (<feature>/i18n.js).⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 const LANGS = ['fr', 'en'];
 const defaultLang = () => ((navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en');
-const withI18n = s => ({ ...s, js: ['shared/i18n-page.js', s.js[s.js.length - 1].split('/')[0] + '/i18n.js', ...s.js] });
+// Chrome injects a given file only once per frame, whatever the world: a file shared by a MAIN and an ISOLATED script
+// runs only in the first one injected. So the helper has one path per world (identical files, checked by
+// tenant-guard/test.js), and MAIN hooks that show no text (`i18n: false`) get no dictionary, which keeps
+// <feature>/i18n.js for the feature's ISOLATED script.
+const withI18n = ({ i18n, ...s }) => i18n === false ? s : ({ ...s, js: [s.world === 'MAIN' ? 'shared/i18n-page.js' : 'shared/i18n-page-isolated.js',
+  s.js[s.js.length - 1].split('/')[0] + '/i18n.js', ...s.js] });
 
 async function apply() {
   const { features, lang } = await chrome.storage.sync.get({ features: DEFAULTS, lang: '' });
   const on = { ...DEFAULTS, ...features };
+  if (on.settingsExplainer) on.settingInspector = false; // superseded, see SCRIPTS.settingsExplainer
   const ui = LANGS.includes(lang) ? lang : defaultLang();
   const ids = (await chrome.scripting.getRegisteredContentScripts()).map(s => s.id);
   if (ids.length) await chrome.scripting.unregisterContentScripts({ ids });
   const wanted = [
-    { id: 'ui-lang', matches: chrome.runtime.getManifest().host_permissions, js: [`shared/lang/${ui}.js`], allFrames: true, runAt: 'document_start' },
+    { id: 'ui-lang', matches: PORTALS, js: [`shared/lang/${ui}.js`], allFrames: true, runAt: 'document_start' },
     ...Object.keys(SCRIPTS).filter(k => on[k]).flatMap(k => SCRIPTS[k]).map(withI18n),
   ];
   await chrome.scripting.registerContentScripts(wanted);

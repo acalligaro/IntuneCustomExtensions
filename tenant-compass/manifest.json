@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tenant Compass",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Boîte à outils pour le portail Microsoft Intune : bon tenant, documentation, paramètres, affectations, journal des modifications.",
   "author": "Alexandre Calligaro",
   "minimum_chrome_version": "111",
@@ -27,7 +27,8 @@
     "https://compliance.microsoft.com/*",
     "https://admin.exchange.microsoft.com/*",
     "https://admin.teams.microsoft.com/*",
-    "https://*.portal.azure.net/*"
+    "https://*.portal.azure.net/*",
+    "https://learn.microsoft.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -47,7 +48,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "setting-inspector/data/*.json"
+        "setting-inspector/data/*.json",
+        "settings-explainer/data/*.json"
       ],
       "matches": [
         "https://intune.microsoft.com/*",

@@ -109,11 +109,15 @@
   }
 
   const CLICKABLE = 'button, [role="button"], [role="menuitem"], input[type="submit"], input[type="button"]';
+  // Tenant Compass's own UI (its buttons only write local data, e.g. Change Snapshot "Save" in the log): never guarded.
+  const OWN_UI = new Set(['tenant-guard', 'as-built-host', 'assignment-lens', 'setting-inspector', 'settings-explainer', 'change-snapshot']);
 
   // Window capture phase runs before React/Knockout handlers, so stopping here cancels the action.
   window.addEventListener('click', e => {
     if (!state?.prod) return;
-    const el = e.composedPath().find(n => n instanceof Element && n.matches(CLICKABLE));
+    const path = e.composedPath();
+    if (path.some(n => n instanceof Element && OWN_UI.has(n.id))) return;
+    const el = path.find(n => n instanceof Element && n.matches(CLICKABLE));
     if (!el) return;
     if (el === bypass) { bypass = null; return; }
     const text = (el.textContent || el.value || el.getAttribute('aria-label') || el.title || '').trim();
