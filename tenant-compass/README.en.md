@@ -185,6 +185,10 @@ Third section of the setting card (indented toggle under Setting Inspector in âš
 
 ![Card on "Allow Cortana Above Lock": OIB recommends Block (Login and Lock Screen policy), the tenant is set to Allow](docs/img/readme/en/15-openintunebaseline.jpg)
 
+When the setting is recognized by its name (page text, without its option list), the OIB value is labeled with the allowed values of the CSP's Learn page: "Not allowed (0)" rather than "0".
+
+!["Allow Cortana" card recognized by its name: OIB recommends Not allowed (0), label taken from the Learn page](docs/img/readme/en/16-openintunebaseline-learn.jpg)
+
 OIB is an author's baseline (inspired by CIS, NCSC and other frameworks), not a compliance standard: each organization decides which settings fit, and policies must be tested before deployment.
 
 Data: `setting-inspector/data/oib.json` (80 Settings Catalog policies: Windows v4.0, macOS and Windows 365, 1,602 settings), built from the OIB repository (Node 18+, no dependency):

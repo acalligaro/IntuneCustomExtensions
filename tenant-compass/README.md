@@ -187,6 +187,10 @@ Troisième section de la carte de paramètre (bascule en retrait sous Setting In
 
 ![Carte sur « Autoriser Cortana par-dessus le verrouillage » : OIB recommande Bloquer (stratégie Login and Lock Screen), le tenant est sur Autoriser](docs/img/readme/fr/15-openintunebaseline.jpg)
 
+Quand le paramètre est reconnu par son nom (texte de la page, sans la liste de ses options), la valeur OIB est traduite avec les valeurs autorisées de la page Learn du CSP, en français quand elle existe : « Non autorisé (0) » plutôt que « 0 ».
+
+![Carte « Allow Cortana » reconnue par son nom : OIB recommande Non autorisé (0), libellé tiré de la page Learn](docs/img/readme/fr/16-openintunebaseline-learn.jpg)
+
 OIB est une baseline d'auteur (inspirée du CIS, du NCSC et d'autres référentiels), pas un standard de conformité : chaque organisation décide des paramètres qui lui conviennent, et les stratégies se testent avant déploiement.
 
 Données : `setting-inspector/data/oib.json` (80 stratégies Settings Catalog Windows v4.0, macOS et Windows 365, 1 602 paramètres), produit depuis le dépôt OIB (Node 18+, sans dépendance) :
