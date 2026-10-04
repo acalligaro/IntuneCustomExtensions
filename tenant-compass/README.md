@@ -73,7 +73,7 @@ Clic sur l'icône de l'extension. Une ligne de pastilles montre les fonctions ac
 
 | Paramètres (⚙), fonctions | Paramètres (⚙), suite |
 |---|---|
-| ![Paramètres : bascules des fonctions, Settings Explainer et OpenIntuneBaseline en retrait sous Setting Inspector](docs/img/readme/fr/08-menu-parametres.jpg) | ![Paramètres : langue prédéfinie, délai de la carte Settings Explainer, positions par défaut](docs/img/readme/fr/09-menu-parametres-suite.jpg) |
+| ![Paramètres : bascules des fonctions, Settings Explainer et OpenIntuneBaseline en retrait sous Setting Inspector](docs/img/readme/fr/08-menu-parametres.jpg) | ![Paramètres : langue prédéfinie, délai de la carte de paramètre, positions par défaut](docs/img/readme/fr/09-menu-parametres-suite.jpg) |
 
 *Menu rendu avec le code réel de `popup.html` et des tenants fictifs (Contoso) : la page de l'extension ne peut pas être capturée par l'outil d'automatisation.*
 
@@ -83,7 +83,7 @@ Clic sur l'icône de l'extension. Une ligne de pastilles montre les fonctions ac
 - **⚙ Paramètres** (s'ouvrent sous les pastilles) :
   - **Fonctions** : une case par fonction, avec sa description. Une fonction décochée n'injecte plus aucun script. **Settings Explainer** et **OpenIntuneBaseline** apparaissent en retrait sous Setting Inspector : ce sont les trois sections de la même carte de paramètre, chacune activable seule, sans lien entre elles.
   - **Set Tenant Language · langue prédéfinie** : langue de la console et format régional appliqués par la pastille 🌐.
-  - **Settings Explainer** : délai avant fermeture de la carte, en secondes (2 par défaut, de 0 à 60), pris en compte sans recharger le portail.
+  - **Carte de paramètre** : délai avant fermeture de la carte (Setting Inspector, Settings Explainer, OpenIntuneBaseline), en secondes (2 par défaut, de 0 à 60), pris en compte sans recharger le portail.
   - **Affichage** : **Positions par défaut** replace les boutons et panneaux en bas à gauche.
 - **Tenant Guard · tenants référencés** (vue principale) : correspondance, étiquette, couleur, PROD.
   - **Exporter (JSON)** : télécharge `tenant-guard-AAAA-MM-JJ.json` (`{ rules: [{ match, label, color, prod }], customColors: ["#rrggbb"] }`).

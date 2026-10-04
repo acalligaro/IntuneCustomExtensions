@@ -76,7 +76,7 @@ tenant-compass/
 │       └── OIB-LICENSE.txt       Texte de la GPL-3.0
 ├── settings-explainer/
 │   ├── page-hook.js              Copie de celui de Setting Inspector + champs d'explication (description, options, défaut, risque) ; attribut data-se-def (MAIN world)
-│   ├── content.js                Carte : explication puis détails Setting Inspector, ancrée au bord droit, délai de fermeture réglable (ISOLATED world)
+│   ├── content.js                Carte de paramètre : sections OIB, explication et détails selon les modules actifs, ancrée au bord droit, délai de fermeture réglable (ISOLATED world)
 │   ├── lib.js                    lib.js de Setting Inspector + slim() étendu, explain(), learnTarget(), learnGpo()
 │   ├── csp.js                    Analyse d'une page CSP Learn (marqueurs <!-- X-Section-Begin -->), findDoc(), learnUrl() (service worker)
 │   ├── background.js             Importé par le service worker : lecture des pages Learn, cache 7 jours
@@ -462,7 +462,7 @@ Le paramètre `l=` est un comportement **observé** du portail, **non documenté
 
 - **En-tête** : icône, titre, sélecteur **FR / EN** (`[data-lang]`, `aria-pressed`), bouton **⚙** (`#gear`).
 - **Vue principale** : une ligne de pastilles sans carte (`.strip` > `#active-list.chips`), une par fonction active : nom, description en infobulle (`title`), et une action rapide en icône dans la pastille si `ACTIONS[clé]` existe (`changeSnapshot` → 📋 journal). Set Tenant Language n'apparaît que par son action : bouton « 🌐 <LANGUE> » (section 4.6). Message `#none` si aucune fonction n'est active. Sous les pastilles, le bouton de rechargement `#reload-btn` (voir 5.2). Puis, si Tenant Guard est actif, les cartes « onglet actuel » (`#current` : signaux détectés, bouton « Référencer ») et « tenants référencés » (tableau, export, import, mes couleurs), modifiables sans passer par ⚙.
-- **Paramètres** (⚙ bascule `#settings`, affiché juste sous les pastilles) : bascules des fonctions avec description (`#toggles`, générées depuis `DEFAULTS` ; Settings Explainer en retrait sous Setting Inspector), carte Settings Explainer (`.se-only`, délai avant fermeture de la carte), carte Set Tenant Language (`.pl-only`, deux listes) et carte « Affichage » avec « Positions par défaut ».
+- **Paramètres** (⚙ bascule `#settings`, affiché juste sous les pastilles) : bascules des fonctions avec description (`#toggles`, générées depuis `DEFAULTS` ; Settings Explainer en retrait sous Setting Inspector), carte « Carte de paramètre » (`.se-only`, délai avant fermeture de la carte, affichée dès qu'un des trois modules est actif), carte Set Tenant Language (`.pl-only`, deux listes) et carte « Affichage » avec « Positions par défaut ».
 - Les cartes `.tg-only` (onglet actuel et tenants) sont masquées si Tenant Guard est désactivé ; la carte `.pl-only` si Set Tenant Language l'est.
 - Changer de langue appelle `setLang()`, pose le drapeau `sessionStorage` `langChanged` puis `location.reload()` : les textes de `tenant-guard/options.js` sont construits une seule fois, après `i18nReady` (langue enregistrée connue). Au rechargement, le drapeau est consommé et affiche `#reload-btn`.
 

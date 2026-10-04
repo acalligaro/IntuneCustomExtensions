@@ -73,7 +73,7 @@ Click the extension icon. A row of pills shows the active features (description 
 
 | Settings (⚙), features | Settings (⚙), continued |
 |---|---|
-| ![Settings: feature toggles, Settings Explainer and OpenIntuneBaseline indented under Setting Inspector](docs/img/readme/en/08-menu-parametres.jpg) | ![Settings: preset language, Settings Explainer card delay, reset positions](docs/img/readme/en/09-menu-parametres-suite.jpg) |
+| ![Settings: feature toggles, Settings Explainer and OpenIntuneBaseline indented under Setting Inspector](docs/img/readme/en/08-menu-parametres.jpg) | ![Settings: preset language, setting card delay, reset positions](docs/img/readme/en/09-menu-parametres-suite.jpg) |
 
 *Menu rendered with the actual `popup.html` code and fictitious tenants (Contoso): the extension page cannot be captured by the automation tool.*
 
@@ -83,7 +83,7 @@ Click the extension icon. A row of pills shows the active features (description 
 - **⚙ Settings** (open under the pills):
   - **Features**: one checkbox per feature, with its description. A cleared feature injects no script at all. **Settings Explainer** and **OpenIntuneBaseline** are indented under Setting Inspector: they are the three sections of the same setting card, each usable on its own, independent of each other.
   - **Set Tenant Language · preset language**: console language and regional format applied by the 🌐 pill.
-  - **Settings Explainer**: card close delay, in seconds (2 by default, 0 to 60), applied without reloading the portal.
+  - **Setting card**: card close delay (Setting Inspector, Settings Explainer, OpenIntuneBaseline), in seconds (2 by default, 0 to 60), applied without reloading the portal.
   - **Display**: **Reset positions** moves the buttons and panels back to the bottom left.
 - **Tenant Guard · known tenants** (main view): match, label, color, PROD.
   - **Export (JSON)**: downloads `tenant-guard-YYYY-MM-DD.json` (`{ rules: [{ match, label, color, prod }], customColors: ["#rrggbb"] }`).
