@@ -8,7 +8,7 @@ Detailed architecture (scripts, flows, security, storage), in French: [ARCHITECT
 
 ![Overview in the Intune admin center: Tenant Guard pill and frame, Assignment Lens and As-Built buttons](docs/img/readme/en/01-portail-tenant-guard.jpg)
 
-> **Two separate language settings.** The language of the **Intune admin center** (Settings > Language + region, or the 🌐 pill of Set Tenant Language) and the language of **the extension** (FR / EN buttons in the menu) are set independently: changing one does not change the other. The screenshots in this document show both the portal **and** the extension in English; the [French version](README.md) shows both in French.
+> **Two separate language settings.** The language of the **Intune admin center** (Settings > Language + region, or the 🌐 buttons of Set Tenant Language) and the language of **the extension** (FR / EN buttons in the menu) are set independently: changing one does not change the other. The screenshots in this document show both the portal **and** the extension in English; the [French version](README.md) shows both in French.
 
 > **About the screenshots.** They are taken in a real test tenant. The tenant name, domain, account and scope tags are anonymized (`contoso.onmicrosoft.com`, "Paris") in the page before each capture. The extension menu pages cannot be captured by the automation tool: they are rendered with the real `popup.html` code, in a local page, with fictitious data (Contoso, Fabrikam, Northwind).
 
@@ -42,7 +42,7 @@ Detailed architecture (scripts, flows, security, storage), in French: [ARCHITECT
 | OpenIntuneBaseline | Same card, OIB section: value set by the OpenIntuneBaseline community baseline and the policy concerned. Can be used on its own | Same card |
 | Assignment Lens | Included / excluded groups, members, filters, overlaps of the displayed policy | Button above As-Built |
 | Change Snapshot | Local change log: before / after diff, author, ticket number, JSON / CSV export | Window at the bottom right after a save; log from the menu |
-| Set Tenant Language | Switches the console to a preset language and regional format in one click | 🌐 pill in the menu |
+| Set Tenant Language | Switches the console between two preset languages in one click | 🌐 buttons in the menu; Intune, Azure, Entra, Defender, Purview |
 
 ## Installation
 
@@ -82,7 +82,7 @@ Click the extension icon. A row of pills shows the active features (description 
 - **📋** (in the Change Snapshot pill): opens the change log.
 - **⚙ Settings** (open under the pills):
   - **Features**: one checkbox per feature, with its description. A cleared feature injects no script at all. **Settings Explainer** and **OpenIntuneBaseline** are indented under Setting Inspector: they are the three sections of the same setting card, each usable on its own, independent of each other.
-  - **Set Tenant Language · preset language**: console language and regional format applied by the 🌐 pill.
+  - **Set Tenant Language · preset languages**: Language 1 and Language 2 (console language and regional format), applied by the two 🌐 buttons.
   - **Setting card**: card close delay (Setting Inspector, Settings Explainer, OpenIntuneBaseline), in seconds (2 by default, 0 to 60), applied without reloading the portal.
   - **Display**: **Reset positions** moves the buttons and panels back to the bottom left.
 - **Tenant Guard · known tenants** (main view): match, label, color, PROD.
@@ -114,7 +114,7 @@ Admin consoles only: nothing is injected into end-user pages (Outlook, Teams, Sh
 | Exchange | `admin.cloud.microsoft/exchange` (and `admin.exchange.microsoft.com`) | ✅ |
 | Purview | `purview.microsoft.com` (and `compliance.microsoft.com`, redirected) | ✅ |
 | Teams | `admin.teams.microsoft.com` | ✅ |
-| SharePoint | `<tenant>-admin.sharepoint.com` | ⏳ |
+| SharePoint | `<tenant>-admin.sharepoint.com` | ✅ |
 
 Not supported: Power Platform, Power BI / Fabric.
 
@@ -241,9 +241,15 @@ Details (flow, covered endpoints, limitations), in French: [change-snapshot/READ
 
 ## Set Tenant Language
 
-A shortcut for the portal's *Settings > Language + region*: choose once, in ⚙, the console language (the 24 languages of the Intune console) and the regional format (dates, numbers); then one click on the menu's **🌐** pill (visible in the [menu screenshot](#menu)) reloads the active Intune, Azure or Entra tab in that language, on the same page. This only changes the **portal** language, not the extension's.
+Switches the console between **two preset languages** (Language 1, Language 2), without going through *Settings > Language + region*. In ⚙, choose for each the console language (the 24 languages of the Intune console) and the regional format (dates, numbers); by default, Language 1 = French, Language 2 = English. The menu then shows two buttons, **🌐 FR** and **🌐 EN** (per the chosen languages): one click reloads the active tab in that language, on the same page. This only changes the **console** language, not the extension's.
 
-- Mechanism: the portal's `l=<language>.<format>` URL parameter (e.g. `?l=en.en-us`). Observed portal behavior, not documented on Microsoft Learn: check on your tenant whether the language sticks after normal navigation.
+| Console | Mechanism | Tested on 2026-10-04 |
+|---|---|---|
+| Intune, Azure, Entra | `?l=<language>.<format>` (e.g. `?l=en.en-us`) | ✅ |
+| Defender, Purview | `?mkt=<locale>` (e.g. `?mkt=en-us`), language only | ✅ |
+| Microsoft 365 admin center, Exchange, Teams, SharePoint | no URL parameter changes the language: it follows the account language (*My account > Settings & Privacy*) | not supported |
+
+- Observed portal behavior, not documented on Microsoft Learn: check on your tenant whether the language sticks after normal navigation.
 - The reload loses unsaved changes in the tab.
 - Code: `portal-language/lib.js` (tested: `node portal-language/test.js`).
 

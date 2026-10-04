@@ -78,7 +78,10 @@
     .chips > span::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #107c10; }
     .chips button { padding: 0 6px; margin-right: -6px; border-radius: 999px; background: #eff6fc; font-size: 12px; line-height: 18px; }
     .chips button:hover { background: #deecf9; }
-    .chips > button.solo { margin: 0; padding: 2px 8px; font-weight: 600; font-size: 11px; color: #005a9e; }
+    /* Set Tenant Language: two buttons (language 1 / language 2), no chip around them */
+    .chips > span.solo { padding: 0; background: none; box-shadow: none; }
+    .chips > span.solo::before { content: none; }
+    .chips > span.solo button { margin: 0; padding: 2px 8px; font-weight: 600; font-size: 11px; color: #005a9e; box-shadow: 0 0 0 1px var(--line); }
     .pick-l { display: flex; flex-direction: column; gap: 3px; }
     select { padding: 6px 9px; border: 1px solid var(--line); border-radius: 9px; background: #faf9f8; font: inherit; }
     html.tab { background: #e9ebef; min-height: 100%; }
@@ -108,8 +111,14 @@
   <section class="card pl-only">
     <h2 data-i18n="pl.title"></h2>
     <div class="actions">
-      <label class="pick-l"><span class="hint" data-i18n="pl.lang"></span><select id="pl-lang"></select></label>
-      <label class="pick-l"><span class="hint" data-i18n="pl.format"></span><select id="pl-format"></select></label>
+      <b data-i18n="pl.preset1"></b>
+      <label class="pick-l"><span class="hint" data-i18n="pl.lang"></span><select id="pl-lang0"></select></label>
+      <label class="pick-l"><span class="hint" data-i18n="pl.format"></span><select id="pl-format0"></select></label>
+    </div>
+    <div class="actions">
+      <b data-i18n="pl.preset2"></b>
+      <label class="pick-l"><span class="hint" data-i18n="pl.lang"></span><select id="pl-lang1"></select></label>
+      <label class="pick-l"><span class="hint" data-i18n="pl.format"></span><select id="pl-format1"></select></label>
     </div>
     <p class="hint" data-i18n="pl.hint"></p>
   </section>

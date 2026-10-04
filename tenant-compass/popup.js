@@ -2,8 +2,9 @@
 // background.js re-registers content scripts when `features` changes; open tabs need a reload. Strings: shared/i18n.js.
 
 const DEFAULTS = { tenantGuard: true, asBuilt: true, settingInspector: true, settingsExplainer: true, oibRecommendations: true, assignmentLens: true, changeSnapshot: true, portalLanguage: true }; // keep in sync with background.js
-const PL_DEFAULT = { lang: 'en', format: 'en-us' };
-let portalLang = { ...PL_DEFAULT };
+// Set Tenant Language: two presets (language 1 / language 2), one button each.
+const PL_DEFAULT = [{ lang: 'fr', format: 'fr-fr' }, { lang: 'en', format: 'en-us' }];
+let portalLangs = PL_DEFAULT.map(p => ({ ...p }));
 const $id = id => document.getElementById(id);
 // Same page serves as the toolbar popup and as the options tab (import, native color picker): style the tab as a centered card.
 if (!chrome.extension.getViews({ type: 'popup' }).includes(window)) document.documentElement.classList.add('tab');
@@ -16,9 +17,9 @@ function el(tag, props = {}, ...kids) {
 }
 
 // Set Tenant Language: reload the active portal tab with ?l=<language>.<format> (see portal-language/lib.js).⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
-function applyPortalLang() {
+function applyPortalLang({ lang: l, format }) {
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-    const url = tab && PortalLanguage.portalUrl(tab.url || '', portalLang.lang, portalLang.format);
+    const url = tab && PortalLanguage.portalUrl(tab.url || '', l, format);
     if (!url) { $id('pl-msg').textContent = t('pl.noPortal'); return; }
     chrome.tabs.update(tab.id, { url });
     window.close();
@@ -31,22 +32,23 @@ function renderPortalLang() {
   const fill = (sel, codes, value) => {
     sel.replaceChildren(...codes.map(c => el('option', { value: c, textContent: `${displayName(c, 'language')} (${c})`, selected: c === value })));
   };
-  fill($id('pl-lang'), PortalLanguage.LANGUAGES, portalLang.lang);
-  fill($id('pl-format'), PortalLanguage.FORMATS, portalLang.format);
+  portalLangs.forEach((p, i) => {
+    fill($id('pl-lang' + i), PortalLanguage.LANGUAGES, p.lang);
+    fill($id('pl-format' + i), PortalLanguage.FORMATS, p.format);
+  });
   const save = () => {
-    portalLang = { lang: $id('pl-lang').value, format: $id('pl-format').value };
-    chrome.storage.sync.set({ portalLang });
+    portalLangs = [0, 1].map(i => ({ lang: $id('pl-lang' + i).value, format: $id('pl-format' + i).value }));
+    chrome.storage.sync.set({ portalLangs });
     render();
   };
-  $id('pl-lang').onchange = save;
-  $id('pl-format').onchange = save;
+  for (const i of [0, 1]) $id('pl-lang' + i).onchange = $id('pl-format' + i).onchange = save;
 }
 
 // Quick actions shown next to an active feature.
 const ACTIONS = {
-  portalLanguage: () => el('button', { textContent: '🌐 ' + portalLang.lang.toUpperCase(),
-    title: `${t('f.portalLanguage')} · ${t('pl.apply', { code: `${displayName(portalLang.lang, 'language')} · ${displayName(portalLang.format, 'language')}` })}`,
-    onclick: applyPortalLang }),
+  portalLanguage: () => el('span', { className: 'solo' }, ...portalLangs.map(p => el('button', { textContent: '🌐 ' + p.lang.toUpperCase(),
+    title: `${t('f.portalLanguage')} · ${t('pl.apply', { code: `${displayName(p.lang, 'language')} · ${displayName(p.format, 'language')}` })}`,
+    onclick: () => applyPortalLang(p) }))),
   changeSnapshot: () => el('button', { textContent: '📋', title: t('menu.journal.title'), ariaLabel: t('menu.journal.title'),
     onclick: () => chrome.tabs.create({ url: chrome.runtime.getURL('change-snapshot/journal.html') }) }),
 };
@@ -57,7 +59,7 @@ function render() {
   // Compact: one chip per active feature (description as tooltip, full text in ⚙), quick action as an icon inside the chip.
   // Set Tenant Language is its action only (🌐 + target language): its full name is in the tooltip.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
   $id('active-list').replaceChildren(...on.map(k => k === 'portalLanguage'
-    ? Object.assign(ACTIONS[k](), { className: 'solo' })
+    ? ACTIONS[k]()
     : el('span', { title: t('f.' + k + '.desc') }, t('f.' + k), ...(ACTIONS[k] ? [ACTIONS[k]()] : []))));
   $id('none').hidden = on.length > 0;
   $id('toggles').replaceChildren(...Object.keys(DEFAULTS).map(k => {
@@ -118,10 +120,12 @@ $id('se-delay').onchange = e => {
   chrome.storage.sync.set({ explainer: { ...SE_DEFAULT, hideDelay: v } });
 };
 
-Promise.all([i18nReady, chrome.storage.sync.get({ features: DEFAULTS, portalLang: PL_DEFAULT, explainer: SE_DEFAULT })]).then(([, r]) => {
+Promise.all([i18nReady, chrome.storage.sync.get({ features: DEFAULTS, portalLangs: null, portalLang: null, explainer: SE_DEFAULT })]).then(([, r]) => {
   features = { ...DEFAULTS, ...r.features };
   $id('se-delay').value = { ...SE_DEFAULT, ...r.explainer }.hideDelay;
-  portalLang = { ...PL_DEFAULT, ...r.portalLang };
+  // Older versions kept one preset (portalLang): it becomes language 2.
+  if (Array.isArray(r.portalLangs) && r.portalLangs.length === 2) portalLangs = r.portalLangs;
+  else if (r.portalLang) portalLangs = [PL_DEFAULT[0], { ...PL_DEFAULT[1], ...r.portalLang }];
   renderPortalLang();
   render();
   try { if (sessionStorage.getItem('langChanged')) { sessionStorage.removeItem('langChanged'); $id('reload-btn').hidden = false; } } catch {}

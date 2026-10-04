@@ -8,7 +8,7 @@ Architecture détaillée (scripts, flux, sécurité, stockage) : [ARCHITECTURE.m
 
 ![Vue d'ensemble dans le portail Intune : bandeau et cadre Tenant Guard, boutons Assignment Lens et As-Built](docs/img/readme/fr/01-portail-tenant-guard.jpg)
 
-> **Deux réglages de langue distincts.** La langue du **portail Intune** (Paramètres > Langue + région, ou la pastille 🌐 de Set Tenant Language) et celle de **l'extension** (boutons FR / EN du menu) se règlent séparément : changer l'une ne change pas l'autre. Les captures de ce document sont prises avec le portail **et** l'extension en français ; la [version anglaise](README.en.md) les montre tous deux en anglais.
+> **Deux réglages de langue distincts.** La langue du **portail Intune** (Paramètres > Langue + région, ou les boutons 🌐 de Set Tenant Language) et celle de **l'extension** (boutons FR / EN du menu) se règlent séparément : changer l'une ne change pas l'autre. Les captures de ce document sont prises avec le portail **et** l'extension en français ; la [version anglaise](README.en.md) les montre tous deux en anglais.
 
 > **À propos des captures.** Elles sont prises dans un vrai tenant de test. Le nom du tenant, le domaine, le compte et les balises d'étendue sont anonymisés (`contoso.onmicrosoft.com`, « Paris ») avant chaque capture, directement dans la page. Les pages du menu de l'extension ne peuvent pas être capturées par l'outil d'automatisation : elles sont rendues avec le code réel de `popup.html`, dans une page locale, avec des données fictives (Contoso, Fabrikam, Northwind).
 
@@ -42,7 +42,7 @@ Architecture détaillée (scripts, flux, sécurité, stockage) : [ARCHITECTURE.m
 | OpenIntuneBaseline | Même carte, section OIB : valeur configurée par la baseline communautaire OpenIntuneBaseline et stratégie concernée. Activable seule | Même carte |
 | Assignment Lens | Groupes inclus / exclus, membres, filtres, chevauchements de la stratégie affichée | Bouton au-dessus d'As-Built |
 | Change Snapshot | Journal local des modifications : différence avant / après, auteur, n° de ticket, export JSON / CSV | Fenêtre en bas à droite après un enregistrement ; journal depuis le menu |
-| Set Tenant Language | Passe la console dans une langue et un format régional prédéfinis, en 1 clic | Pastille 🌐 du menu |
+| Set Tenant Language | Bascule la console entre deux langues prédéfinies, en 1 clic | Boutons 🌐 du menu ; Intune, Azure, Entra, Defender, Purview |
 
 ## Installation
 
@@ -82,7 +82,7 @@ Clic sur l'icône de l'extension. Une ligne de pastilles montre les fonctions ac
 - **📋** (dans la pastille Change Snapshot) : ouvre le journal des modifications.
 - **⚙ Paramètres** (s'ouvrent sous les pastilles) :
   - **Fonctions** : une case par fonction, avec sa description. Une fonction décochée n'injecte plus aucun script. **Settings Explainer** et **OpenIntuneBaseline** apparaissent en retrait sous Setting Inspector : ce sont les trois sections de la même carte de paramètre, chacune activable seule, sans lien entre elles.
-  - **Set Tenant Language · langue prédéfinie** : langue de la console et format régional appliqués par la pastille 🌐.
+  - **Set Tenant Language · langues prédéfinies** : Langue 1 et Langue 2 (langue de la console et format régional), appliquées par les deux boutons 🌐.
   - **Carte de paramètre** : délai avant fermeture de la carte (Setting Inspector, Settings Explainer, OpenIntuneBaseline), en secondes (2 par défaut, de 0 à 60), pris en compte sans recharger le portail.
   - **Affichage** : **Positions par défaut** replace les boutons et panneaux en bas à gauche.
 - **Tenant Guard · tenants référencés** (vue principale) : correspondance, étiquette, couleur, PROD.
@@ -116,7 +116,7 @@ Consoles d'administration uniquement : rien n'est injecté dans les pages utilis
 | Exchange | `admin.cloud.microsoft/exchange` (et `admin.exchange.microsoft.com`) | ✅ |
 | Purview | `purview.microsoft.com` (et `compliance.microsoft.com`, redirigé) | ✅ |
 | Teams | `admin.teams.microsoft.com` | ✅ |
-| SharePoint | `<tenant>-admin.sharepoint.com` | ⏳ |
+| SharePoint | `<tenant>-admin.sharepoint.com` | ✅ |
 
 Non pris en charge : Power Platform, Power BI / Fabric.
 
@@ -243,9 +243,15 @@ Détails (flux, points de terminaison couverts, limites) : [change-snapshot/READ
 
 ## Set Tenant Language
 
-Raccourci pour *Paramètres > Langue + région* du portail : choisir une fois, dans ⚙, la langue de la console (24 langues de la console Intune) et le format régional (dates, nombres) ; ensuite, un clic sur la pastille **🌐** du menu (visible sur la [capture du menu](#menu)) recharge l'onglet Intune, Azure ou Entra actif dans cette langue, sur la même page.
+Bascule la console entre **deux langues prédéfinies** (Langue 1, Langue 2), sans passer par *Paramètres > Langue + région*. Dans ⚙, choisir pour chacune la langue de la console (24 langues de la console Intune) et le format régional (dates, nombres) ; par défaut, Langue 1 = français, Langue 2 = anglais. Le menu affiche ensuite deux boutons **🌐 FR** et **🌐 EN** (selon les langues choisies) : un clic recharge l'onglet actif dans cette langue, sur la même page. Seule la langue de la **console** change, pas celle de l'extension.
 
-- Mécanisme : paramètre d'URL `l=<langue>.<format>` du portail (ex. `?l=en.en-us`). Comportement observé du portail, non documenté sur Microsoft Learn : vérifier sur votre tenant si la langue reste appliquée après une navigation normale.
+| Console | Mécanisme | Testé le 2026-10-04 |
+|---|---|---|
+| Intune, Azure, Entra | `?l=<langue>.<format>` (ex. `?l=en.en-us`) | ✅ |
+| Defender, Purview | `?mkt=<locale>` (ex. `?mkt=en-us`), langue seulement | ✅ |
+| Centre d'administration Microsoft 365, Exchange, Teams, SharePoint | aucun paramètre d'URL ne change la langue : elle suit la langue du compte (*Mon compte > Paramètres et confidentialité*) | non pris en charge |
+
+- Comportement observé des portails, non documenté sur Microsoft Learn : vérifier sur votre tenant si la langue reste appliquée après une navigation normale.
 - Le rechargement perd les modifications non enregistrées de l'onglet.
 - Code : `portal-language/lib.js` (testé : `node portal-language/test.js`).
 
