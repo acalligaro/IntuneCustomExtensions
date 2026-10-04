@@ -58,7 +58,7 @@ Detailed architecture (scripts, flows, security, storage), in French: [ARCHITECT
 |---|---|---|
 | As-Built, Assignment Lens | Reads (`GET`) on `graph.microsoft.com`, with the portal session | The policies, apps and groups shown, as the portal itself does |
 | Settings Explainer | Cookie-less reads of public `learn.microsoft.com/…/windows/client-management/mdm/` pages | No tenant data: only the name of the documentation page requested |
-| Tenant Guard, Setting Inspector, Change Snapshot, Set Tenant Language | None | They observe the page and the responses the portal already receives |
+| Tenant Guard, Setting Inspector, OpenIntuneBaseline, Change Snapshot, Set Tenant Language | None | They observe the page and the responses the portal already receives |
 
 - **Token**: the portal token is never stored, logged or sent to the service worker. Change Snapshot only keeps the author (`upn`) and the tenant ID (`tid`).
 - **Local storage**: settings, known tenants and colors in `chrome.storage.sync`; captured definitions, the Learn page cache and the Change Snapshot log in `chrome.storage.local`; panel positions in the portal's `localStorage`. Details in [ARCHITECTURE.md](ARCHITECTURE.md), section 8.
@@ -78,7 +78,7 @@ Click the extension icon. A row of pills shows the active features (description 
 - **Blue "Reload the portal tab to apply (features and language) ↻" button**: appears after turning a feature on or off, or changing the language.
 - **📋** (in the Change Snapshot pill): opens the change log.
 - **⚙ Settings** (open under the pills):
-  - **Features**: one checkbox per feature, with its description. A cleared feature injects no script at all. **Settings Explainer** is indented under Setting Inspector: when both are checked, only the Settings Explainer card shows (it contains all of Setting Inspector) and the Setting Inspector pill is hidden.
+  - **Features**: one checkbox per feature, with its description. A cleared feature injects no script at all. **Settings Explainer** and **OpenIntuneBaseline** are indented under Setting Inspector: they are the three sections of the same setting card, each usable on its own, independent of each other.
   - **Set Tenant Language · preset language**: console language and regional format applied by the 🌐 pill.
   - **Settings Explainer**: card close delay, in seconds (2 by default, 0 to 60), applied without reloading the portal.
   - **Display**: **Reset positions** moves the buttons and panels back to the bottom left.
@@ -234,7 +234,8 @@ The As-Built and Assignment Lens buttons and panels can be moved with the mouse 
 
 - Tenants added in the standalone Tenant Guard extension are not carried over: storage is per extension, they must be entered again.
 - Assignment Lens only works on `intune.microsoft.com` (not `endpoint.microsoft.com`).
-- In a portal iframe, the Settings Explainer / Setting Inspector card docks to the iframe's right edge, not the window's.
+- OpenIntuneBaseline: the card shows a snapshot of the baseline (commit in `setting-inspector/data/OIB-NOTICE.md`), to rebuild at each OIB release; only Settings Catalog policies are included (not compliance or update policies).
+- In a portal iframe, the setting card docks to the iframe's right edge, not the window's.
 - Settings Explainer level 2 depends on the structure of the Learn pages; if it changes, the card keeps levels 1 and 3.
 - Detection relies on the current structure of the portal and its Graph calls. The features were checked by hand in a test tenant (screenshots above), not by automated tests in the real portal.
 

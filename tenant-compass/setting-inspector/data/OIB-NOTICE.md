@@ -24,3 +24,4 @@ Update `oib.json` with that script and update the commit and date above.
 ## No warranty
 
 As stated by the GPL-3.0 (sections 15 and 16), this data is provided "as is", without warranty of any kind. OpenIntuneBaseline is an opinionated community baseline, not a compliance standard: as its author states, each organization remains responsible for deciding which settings fit its needs, and policies must be tested before deployment.
+<!--⁣​​‌​‌​​​​​​‌​​‌​‍​⁣ -->

@@ -1,11 +1,11 @@
-// OpenIntuneBaseline recommendations in the setting card (ISOLATED world, loaded after settings-explainer/lib.js).
+// OpenIntuneBaseline recommendations in the setting card (ISOLATED world, loaded after settings-explainer/lib.js).⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 // Data: setting-inspector/data/oib.json, built from the OpenIntuneBaseline repository by tools/build-oib.mjs.
 // OpenIntuneBaseline © SkipToTheEndpoint (James Robinson), GPL-3.0: see data/OIB-NOTICE.md and data/OIB-LICENSE.txt.
 // Pure part (oibFor, oibValue) tested by setting-inspector/test.js; oibBlock() renders the card section.
 
 const OIB_URL = 'https://github.com/SkipToTheEndpoint/OpenIntuneBaseline';
 
-// Policies of the baseline that configure this setting: exact settingDefinitionId match, [{ p: policy name, v: [values] }].
+// Policies of the baseline that configure this setting: exact settingDefinitionId match, [{ p: policy name, v: [values] }].⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 function oibFor(def, oib) {
   const id = def && def.id;
   return (id && oib && oib.settings && oib.settings[id]) || [];
@@ -35,7 +35,7 @@ const OIB_CSS = `
 
 const OIB_MAX = 3;
 
-// Section for entry e; an "OIB" badge is added to the title element when the baseline configures the setting.
+// Section for entry e; an "OIB" badge is added to the title element when the baseline configures the setting.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 function oibBlock(e, oib, title) {
   const T = (k, v) => __tenantCompassI18n.t('oib.' + k, v);
   const el = (tag, cls, text, tip) => Object.assign(document.createElement(tag), { className: cls, textContent: text, ...(tip ? { title: tip } : {}) });
@@ -53,7 +53,7 @@ function oibBlock(e, oib, title) {
     box.append(rec);
   }
   if (hits.length > OIB_MAX) box.append(el('div', 'meta', T('more', { n: hits.length - OIB_MAX })));
-  // Attribution required by the baseline's licence (GPL-3.0): author, licence, source.
+  // Attribution required by the baseline's licence (GPL-3.0): author, licence, source.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
   const src = el('div', 'src', T('credit', { commit: meta.commit || '?' }) + ' ');
   src.append(Object.assign(document.createElement('a'), { href: OIB_URL, target: '_blank', rel: 'noopener noreferrer', textContent: 'GitHub ↗' }));
   box.append(src);

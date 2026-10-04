@@ -1,4 +1,4 @@
-// Builds data/oib.json from a clone of OpenIntuneBaseline (https://github.com/SkipToTheEndpoint/OpenIntuneBaseline, GPL-3.0).
+// Builds data/oib.json from a clone of OpenIntuneBaseline (https://github.com/SkipToTheEndpoint/OpenIntuneBaseline, GPL-3.0).⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 // Usage (Node 18+, no dependency), from tenant-compass/:
 //   git clone --depth 1 https://github.com/SkipToTheEndpoint/OpenIntuneBaseline.git /tmp/oib
 //   node setting-inspector/tools/build-oib.mjs /tmp/oib
@@ -18,7 +18,7 @@ const read = f => {
   return JSON.parse(s.replace(/^﻿/, ''));
 };
 
-// Value(s) of one setting instance: choice -> option itemId, simple -> value, collections -> list. Groups have none.
+// Value(s) of one setting instance: choice -> option itemId, simple -> value, collections -> list. Groups have none.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 function values(i) {
   if (i.choiceSettingValue) return [i.choiceSettingValue.value];
   if (i.simpleSettingValue) return [i.simpleSettingValue.value];

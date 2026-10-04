@@ -9,7 +9,7 @@
   const setDelay = x => { const s = Number(x && x.hideDelay); if (Number.isFinite(s) && s >= 0 && s <= 60) hideDelay = s * 1000; };
   chrome.storage.sync.get('explainer').then(r => setDelay(r.explainer)).catch(() => {});
   chrome.storage.onChanged.addListener((c, area) => { if (area === 'sync' && c.explainer) setDelay(c.explainer.newValue); });
-  // One card, three modules toggled separately in the menu (chrome.storage.sync `features`): Setting Inspector (details),
+  // One card, three modules toggled separately in the menu (chrome.storage.sync `features`): Setting Inspector (details),⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
   // Settings Explainer (explanation) and OpenIntuneBaseline recommendations. background.js injects this card when any of them is on.
   const MODULES = { settingInspector: true, settingsExplainer: true, oibRecommendations: true };
   let mods = { ...MODULES };
@@ -224,7 +224,7 @@
     return h('div', { className: 'entry' }, ...kids);
   }
 
-  // Setting Inspector module: ID, OMA-URI, licence, minimum OS, GPO / registry, Learn links.
+  // Setting Inspector module: ID, OMA-URI, licence, minimum OS, GPO / registry, Learn links.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
   function details(e, title) {
     const kids = [];
     if (e.id) {

@@ -58,7 +58,7 @@ Architecture détaillée (scripts, flux, sécurité, stockage) : [ARCHITECTURE.m
 |---|---|---|
 | As-Built, Assignment Lens | Lectures (`GET`) sur `graph.microsoft.com`, avec la session du portail | Les stratégies, applications et groupes affichés, comme le fait le portail |
 | Settings Explainer | Lecture sans cookie de pages publiques `learn.microsoft.com/…/windows/client-management/mdm/` | Aucune donnée du tenant : seulement le nom de la page de documentation demandée |
-| Tenant Guard, Setting Inspector, Change Snapshot, Set Tenant Language | Aucun | Ils observent la page et les réponses que le portail reçoit déjà |
+| Tenant Guard, Setting Inspector, OpenIntuneBaseline, Change Snapshot, Set Tenant Language | Aucun | Ils observent la page et les réponses que le portail reçoit déjà |
 
 - **Jeton** : le jeton du portail n'est jamais enregistré, journalisé ni transmis au service worker. Change Snapshot n'en garde que l'auteur (`upn`) et l'identifiant du tenant (`tid`).
 - **Stockage local** : réglages, tenants référencés et couleurs dans `chrome.storage.sync` ; définitions captées, cache des pages Learn et journal Change Snapshot dans `chrome.storage.local` ; positions des panneaux dans le `localStorage` du portail. Le détail est dans [ARCHITECTURE.md](ARCHITECTURE.md), section 8.
@@ -78,7 +78,7 @@ Clic sur l'icône de l'extension. Une ligne de pastilles montre les fonctions ac
 - **Bouton bleu « Recharger l'onglet du portail pour appliquer (fonctions et langue) ↻ »** : apparaît après une activation, une désactivation ou un changement de langue.
 - **📋** (dans la pastille Change Snapshot) : ouvre le journal des modifications.
 - **⚙ Paramètres** (s'ouvrent sous les pastilles) :
-  - **Fonctions** : une case par fonction, avec sa description. Une fonction décochée n'injecte plus aucun script. **Settings Explainer** apparaît en retrait sous Setting Inspector : quand les deux sont cochés, seule la carte Settings Explainer s'affiche (elle contient tout Setting Inspector) et la pastille Setting Inspector est masquée.
+  - **Fonctions** : une case par fonction, avec sa description. Une fonction décochée n'injecte plus aucun script. **Settings Explainer** et **OpenIntuneBaseline** apparaissent en retrait sous Setting Inspector : ce sont les trois sections de la même carte de paramètre, chacune activable seule, sans lien entre elles.
   - **Set Tenant Language · langue prédéfinie** : langue de la console et format régional appliqués par la pastille 🌐.
   - **Settings Explainer** : délai avant fermeture de la carte, en secondes (2 par défaut, de 0 à 60), pris en compte sans recharger le portail.
   - **Affichage** : **Positions par défaut** replace les boutons et panneaux en bas à gauche.
@@ -236,7 +236,8 @@ Les boutons et panneaux d'As-Built et d'Assignment Lens se déplacent à la sour
 
 - Les tenants référencés dans l'extension Tenant Guard séparée ne sont pas repris : le stockage est propre à chaque extension, il faut les ressaisir.
 - Assignment Lens ne fonctionne que sur `intune.microsoft.com` (pas `endpoint.microsoft.com`).
-- Dans une iframe du portail, la carte Settings Explainer / Setting Inspector s'ancre au bord droit de l'iframe, pas de la fenêtre.
+- OpenIntuneBaseline : la carte montre un instantané de la baseline (commit dans `setting-inspector/data/OIB-NOTICE.md`), à régénérer à chaque version OIB ; seules les stratégies Settings Catalog sont reprises (pas les stratégies de conformité ni de mise à jour).
+- Dans une iframe du portail, la carte de paramètre s'ancre au bord droit de l'iframe, pas de la fenêtre.
 - Le niveau 2 de Settings Explainer dépend de la structure des pages Learn ; si elle change, la carte garde les niveaux 1 et 3.
 - La détection repose sur la structure actuelle du portail et des appels Graph. Les fonctions ont été vérifiées à la main dans un tenant de test (captures ci-dessus), pas par des tests automatisés dans le vrai portail.
 

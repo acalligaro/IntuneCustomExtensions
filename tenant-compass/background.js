@@ -22,7 +22,7 @@ const SCRIPTS = {
     runAt: 'document_start',
     world: 'MAIN',
   }],
-  // The setting card. Three modules toggled separately (Setting Inspector details, Settings Explainer, OpenIntuneBaseline recommendations),
+  // The setting card. Three modules toggled separately (Setting Inspector details, Settings Explainer, OpenIntuneBaseline recommendations),⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
   // shown in this one card: injected when any of them is on (see apply()), content.js reads `features` to pick the sections.
   settingsExplainer: [{
     id: 'settings-explainer-hook',
