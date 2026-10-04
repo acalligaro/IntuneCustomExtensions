@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title data-i18n="changeSnapshot.journal.title">Change Snapshot · Journal</title>
+  <style>/*⁣​​‌​‌​​​​​​‌​​‌​‍​⁣*/
+    * { box-sizing: border-box; }
+    body { font: 13px/1.45 "Segoe UI Variable", "Segoe UI", system-ui, sans-serif; margin: 0; color: #1b1a19; background: #f5f6f8; }
+    h1 { font-size: 17px; font-weight: 600; margin: 0; padding: 16px 20px; color: #fff; background: linear-gradient(135deg, #0078d4, #5b5fc7); }
+    main { padding: 14px 20px 20px; }
+    .card { background: #fff; border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.03); }
+    .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+    label { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; font-weight: 600; color: #605e5c; }
+    input { padding: 6px 9px; font: inherit; font-weight: 400; color: #1b1a19; border: 1px solid #e8e6e4; border-radius: 9px; background: #faf9f8; outline: none; }
+    input:focus { border-color: #0078d4; box-shadow: 0 0 0 3px rgba(0,120,212,.15); background: #fff; }
+    button { cursor: pointer; padding: 7px 12px; font: inherit; font-weight: 600; border: 0; border-radius: 9px; background: #eff6fc; color: #005a9e; }
+    button:hover { background: #deecf9; }
+    .danger { background: #fde7e9; color: #a4262c; } .danger:hover { background: #fbd5d9; }
+    table { border-collapse: collapse; width: 100%; }
+    th { text-align: left; font-weight: 600; font-size: 11.5px; color: #605e5c; border-bottom: 1px solid #e8e6e4; padding: 6px; }
+    td { border-bottom: 1px solid #f3f2f1; padding: 6px; vertical-align: top; }
+    .noticket { color: #a4262c; font-weight: 600; }
+    .detail td { background: #faf9f8; }
+    .diff { font: 12px/1.35 "Cascadia Code", Consolas, monospace; }
+    .diff td { word-break: break-all; }
+    .add { color: #107c10; } .remove { color: #a4262c; } .change { color: #8a5d00; }
+    pre { max-height: 300px; overflow: auto; background: #fff; border: 1px solid #edebe9; border-radius: 9px; padding: 8px; white-space: pre-wrap; word-break: break-all; }
+    .hint { color: #605e5c; font-size: 12px; }
+  /*⁣​​‌​‌​​​​​​‌​​‌​‍​⁣*/</style>
+</head>
+<body>
+  <h1 data-i18n="changeSnapshot.journal.heading">Change Snapshot · Journal des modifications</h1>
+  <main>
+  <div class="card bar">
+    <label><span data-i18n="changeSnapshot.journal.fPolicy">Stratégie (nom, id, type)</span><input id="fPolicy" type="search"></label>
+    <label><span data-i18n="changeSnapshot.journal.fUser">Utilisateur</span><input id="fUser" type="search"></label>
+    <label><span data-i18n="changeSnapshot.journal.fFrom">Du</span><input id="fFrom" type="date"></label>
+    <label><span data-i18n="changeSnapshot.journal.fTo">Au</span><input id="fTo" type="date"></label>
+    <button id="exportJson" data-i18n="changeSnapshot.journal.exportJson">Exporter JSON</button>
+    <button id="exportCsv" data-i18n="changeSnapshot.journal.exportCsv">Exporter CSV</button>
+    <button id="clear" class="danger" data-i18n="changeSnapshot.journal.clear">Vider le journal</button>
+  </div>
+  <div class="card">
+  <p class="hint" id="count"></p>
+  <table>
+    <thead><tr><th data-i18n="changeSnapshot.journal.col.date">Date</th><th data-i18n="changeSnapshot.journal.col.user">Utilisateur</th><th data-i18n="changeSnapshot.journal.col.tenant">Tenant</th><th data-i18n="changeSnapshot.journal.col.type">Type</th><th data-i18n="changeSnapshot.journal.col.policy">Stratégie</th><th data-i18n="changeSnapshot.journal.col.ticket">Ticket</th><th data-i18n="changeSnapshot.journal.col.comment">Commentaire</th><th data-i18n="changeSnapshot.journal.col.diff">Diff.</th><th></th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  </div>
+  </main>
+  <script src="../shared/i18n-page.js"></script>
+  <script src="i18n.js"></script>
+  <script src="lib.js"></script>
+  <script src="journal.js"></script>
+<!--⁣​​‌​‌​​​​​​‌​​‌​‍​⁣-->
+</body>
+</html>

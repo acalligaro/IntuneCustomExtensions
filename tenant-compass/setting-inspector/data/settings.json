@@ -1,0 +1,266 @@
+{
+ "allow archive scanning": [
+  {
+   "id": "device_vendor_msft_policy_config_defender_allowarchivescanning",
+   "displayName": "Allow Archive Scanning",
+   "baseUri": "./Device/Vendor/MSFT/Policy",
+   "offsetUri": "/Config/Defender/AllowArchiveScanning",
+   "applicability": {
+    "platform": "windows10",
+    "technologies": "mdm",
+    "minimumSupportedVersion": "10.0.14393",
+    "windowsSkus": [
+     "windowsProfessional",
+     "windowsEnterprise",
+     "windowsEducation",
+     "iotEnterprise"
+    ]
+   },
+   "infoUrls": [
+    "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-defender#allowarchivescanning"
+   ]
+  }
+ ],
+ "allow realtime monitoring": [
+  {
+   "id": "device_vendor_msft_policy_config_defender_allowrealtimemonitoring",
+   "displayName": "Allow Realtime Monitoring",
+   "baseUri": "./Device/Vendor/MSFT/Policy",
+   "offsetUri": "/Config/Defender/AllowRealtimeMonitoring",
+   "applicability": {
+    "platform": "windows10",
+    "technologies": "mdm",
+    "minimumSupportedVersion": "10.0.14393",
+    "windowsSkus": [
+     "windowsProfessional",
+     "windowsEnterprise",
+     "windowsEducation",
+     "iotEnterprise"
+    ]
+   },
+   "infoUrls": [
+    "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-defender#allowrealtimemonitoring"
+   ]
+  }
+ ],
+ "allow cloud protection": [
+  {
+   "id": "device_vendor_msft_policy_config_defender_allowcloudprotection",
+   "displayName": "Allow Cloud Protection",
+   "baseUri": "./Device/Vendor/MSFT/Policy",
+   "offsetUri": "/Config/Defender/AllowCloudProtection",
+   "applicability": {
+    "platform": "windows10",
+    "technologies": "mdm",
+    "minimumSupportedVersion": "10.0.10240",
+    "windowsSkus": [
+     "windowsProfessional",
+     "windowsEnterprise",
+     "windowsEducation",
+     "iotEnterprise"
+    ]
+   },
+   "infoUrls": [
+    "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-defender#allowcloudprotection"
+   ]
+  }
+ ],
+ "allow auto update": [
+  {
+   "id": "device_vendor_msft_policy_config_update_allowautoupdate",
+   "displayName": "Allow Auto Update",
+   "baseUri": "./Device/Vendor/MSFT/Policy",
+   "offsetUri": "/Config/Update/AllowAutoUpdate",
+   "applicability": {
+    "platform": "windows10",
+    "technologies": "mdm",
+    "minimumSupportedVersion": "10.0.10240",
+    "windowsSkus": [
+     "windowsProfessional",
+     "windowsEnterprise",
+     "windowsEducation",
+     "iotEnterprise"
+    ]
+   },
+   "infoUrls": [
+    "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-update#allowautoupdate"
+   ]
+  }
+ ],
+ "allow telemetry": [
+  {
+   "id": "device_vendor_msft_policy_config_system_allowtelemetry",
+   "displayName": "Allow Telemetry",
+   "baseUri": "./Device/Vendor/MSFT/Policy",
+   "offsetUri": "/Config/System/AllowTelemetry",
+   "applicability": {
+    "platform": "windows10",
+    "technologies": "mdm",
+    "minimumSupportedVersion": "10.0.10240",
+    "windowsSkus": [
+     "windowsProfessional",
+     "windowsEnterprise",
+     "windowsEducation",
+     "iotEnterprise"
+    ]
+   },
+   "infoUrls": [
+    "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-system#allowtelemetry"
+   ]
+  }
+ ],
+ "allow cortana": [
+  {
+   "id": "device_vendor_msft_policy_config_experience_allowcortana",
+   "displayName": "Allow Cortana",
+   "baseUri": "./Device/Vendor/MSFT/Policy",
+   "offsetUri": "/Config/Experience/AllowCortana",
+   "applicability": {
+    "platform": "windows10",
+    "technologies": "mdm",
+    "minimumSupportedVersion": "10.0.10240",
+    "windowsSkus": [
+     "windowsProfessional",
+     "windowsEnterprise",
+     "windowsEducation",
+     "iotEnterprise"
+    ]
+   },
+   "infoUrls": [
+    "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-experience#allowcortana"
+   ]
+  }
+ ],
+ "allow camera": [
+  {
+   "id": "device_vendor_msft_policy_config_camera_allowcamera",
+   "displayName": "Allow Camera",
+   "baseUri": "./Device/Vendor/MSFT/Policy",
+   "offsetUri": "/Config/Camera/AllowCamera",
+   "applicability": {
+    "platform": "windows10",
+    "technologies": "mdm",
+    "minimumSupportedVersion": "10.0.10240",
+    "windowsSkus": [
+     "windowsProfessional",
+     "windowsEnterprise",
+     "windowsEducation",
+     "iotEnterprise"
+    ]
+   },
+   "infoUrls": [
+    "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-camera#allowcamera"
+   ]
+  }
+ ],
+ "device password enabled": [
+  {
+   "id": "device_vendor_msft_policy_config_devicelock_devicepasswordenabled",
+   "displayName": "Device Password Enabled",
+   "baseUri": "./Device/Vendor/MSFT/Policy",
+   "offsetUri": "/Config/DeviceLock/DevicePasswordEnabled",
+   "applicability": {
+    "platform": "windows10",
+    "technologies": "mdm",
+    "minimumSupportedVersion": "10.0.10240",
+    "windowsSkus": [
+     "windowsProfessional",
+     "windowsEnterprise",
+     "windowsEducation",
+     "iotEnterprise"
+    ]
+   },
+   "infoUrls": [
+    "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-devicelock#devicepasswordenabled"
+   ]
+  }
+ ],
+ "require device encryption": [
+  {
+   "id": "device_vendor_msft_bitlocker_requiredeviceencryption",
+   "displayName": "Require Device Encryption",
+   "baseUri": "./Device/Vendor/MSFT/BitLocker",
+   "offsetUri": "/RequireDeviceEncryption",
+   "applicability": {
+    "platform": "windows10",
+    "technologies": "mdm",
+    "minimumSupportedVersion": "10.0.15063",
+    "windowsSkus": [
+     "windowsProfessional",
+     "windowsEnterprise",
+     "windowsEducation",
+     "iotEnterprise"
+    ]
+   },
+   "infoUrls": [
+    "https://learn.microsoft.com/windows/client-management/mdm/bitlocker-csp#requiredeviceencryption"
+   ]
+  }
+ ],
+ "backup directory": [
+  {
+   "id": "device_vendor_msft_laps_policies_backupdirectory",
+   "displayName": "Backup Directory",
+   "baseUri": "./Device/Vendor/MSFT/LAPS",
+   "offsetUri": "/Policies/BackupDirectory",
+   "applicability": {
+    "platform": "windows10",
+    "technologies": "mdm",
+    "minimumSupportedVersion": "10.0.17763.4244",
+    "windowsSkus": [
+     "windowsProfessional",
+     "windowsEnterprise",
+     "windowsEducation",
+     "iotEnterprise"
+    ]
+   },
+   "infoUrls": [
+    "https://learn.microsoft.com/windows/client-management/mdm/laps-csp"
+   ]
+  }
+ ],
+ "password age days": [
+  {
+   "id": "device_vendor_msft_laps_policies_passwordagedays",
+   "displayName": "Password Age Days",
+   "baseUri": "./Device/Vendor/MSFT/LAPS",
+   "offsetUri": "/Policies/PasswordAgeDays",
+   "applicability": {
+    "platform": "windows10",
+    "technologies": "mdm",
+    "minimumSupportedVersion": "10.0.17763.4244",
+    "windowsSkus": [
+     "windowsProfessional",
+     "windowsEnterprise",
+     "windowsEducation",
+     "iotEnterprise"
+    ]
+   },
+   "infoUrls": [
+    "https://learn.microsoft.com/windows/client-management/mdm/laps-csp"
+   ]
+  }
+ ],
+ "use windows hello for business device": [
+  {
+   "id": "device_vendor_msft_passportforwork_{tenantid}_policies_usepassportforwork",
+   "displayName": "Use Windows Hello For Business (Device)",
+   "baseUri": "./Device/Vendor/MSFT/PassportForWork",
+   "offsetUri": "/{TenantId}/Policies/UsePassportForWork",
+   "applicability": {
+    "platform": "windows10",
+    "technologies": "mdm",
+    "minimumSupportedVersion": "10.0.10586",
+    "windowsSkus": [
+     "windowsProfessional",
+     "windowsEnterprise",
+     "windowsEducation",
+     "iotEnterprise"
+    ]
+   },
+   "infoUrls": [
+    "https://learn.microsoft.com/windows/client-management/mdm/passportforwork-csp"
+   ]
+  }
+ ]
+}

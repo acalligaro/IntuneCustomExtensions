@@ -1,0 +1,192 @@
+{
+ "_licenseRules": {
+  "verified": "2026-10-04",
+  "source": "https://learn.microsoft.com/windows/security/licensing-and-edition-requirements",
+  "rules": [
+   {
+    "feature": "Credential Guard",
+    "match": [
+     "deviceguard_lsacfgflags",
+     "/deviceguard/lsacfgflags",
+     "credentialguard"
+    ],
+    "license": "Windows Enterprise E3/E5 ou Education A3/A5",
+    "proBlocked": true
+   },
+   {
+    "feature": "AppLocker",
+    "match": [
+     "_msft_applocker_",
+     "/msft/applocker/"
+    ],
+    "license": "Windows Enterprise E3/E5 ou Education A3/A5"
+   },
+   {
+    "feature": "Personal Data Encryption",
+    "match": [
+     "_msft_pde_",
+     "/msft/pde/"
+    ],
+    "license": "Windows Enterprise E3/E5 ou Education A3/A5",
+    "proBlocked": true
+   },
+   {
+    "feature": "Always On VPN (device tunnel)",
+    "match": [
+     "_devicetunnel",
+     "/devicetunnel"
+    ],
+    "license": "Windows Enterprise E3/E5 ou Education A3/A5"
+   },
+   {
+    "feature": "Zero Trust DNS",
+    "match": [
+     "zerotrustdns"
+    ],
+    "license": "Windows Enterprise E3/E5 ou Education A3/A5"
+   },
+   {
+    "feature": "Universal Print",
+    "match": [
+     "printerprovisioning_upprinterinstalls",
+     "/printerprovisioning/upprinterinstalls"
+    ],
+    "license": "Windows Enterprise E3/E5 ou Education A3/A5"
+   },
+   {
+    "feature": "Federated sign-in",
+    "match": [
+     "policy_config_federatedauthentication_",
+     "/config/federatedauthentication/"
+    ],
+    "license": "Windows Education A3/A5",
+    "proBlocked": true
+   },
+   {
+    "feature": "Microsoft Defender for Endpoint",
+    "match": [
+     "_msft_windowsadvancedthreatprotection_",
+     "/msft/windowsadvancedthreatprotection/"
+    ],
+    "license": "Windows Enterprise E5 ou Education A5 (ou licence Defender for Endpoint)"
+   },
+   {
+    "feature": "Windows Experience customization (Spotlight, consumer features)",
+    "match": [
+     "experience_allowwindowsspotlight",
+     "experience_configurewindowsspotlightonlockscreen",
+     "experience_allowspotlightcollection",
+     "experience_allowwindowsconsumerfeatures",
+     "/experience/allowwindowsspotlight",
+     "/experience/configurewindowsspotlightonlockscreen",
+     "/experience/allowspotlightcollection",
+     "/experience/allowwindowsconsumerfeatures"
+    ],
+    "license": "Windows Enterprise E3/E5 ou Education A3/A5",
+    "proBlocked": true
+   },
+   {
+    "feature": "Endpoint Privilege Management (Intune add-on)",
+    "match": [
+     "_policy_privilegemanagement_",
+     "_policy_elevationrules_"
+    ],
+    "license": "Intune Suite ou module Endpoint Privilege Management"
+   },
+   {
+    "feature": "Remote Help (Intune add-on)",
+    "match": [
+     "remotehelp"
+    ],
+    "license": "Intune Suite ou module Remote Help"
+   }
+  ],
+  "proBlocked": "true = l'édition Windows Pro ne prend pas en charge la fonction (table d'éditions Learn) : la carte affiche le badge « Windows Pro » barré. Absent = Pro fonctionne, seule la licence compte."
+ },
+ "device_vendor_msft_policy_config_defender_allowarchivescanning": {
+  "license": "Intune Plan 1",
+  "gpo": {
+   "path": "Computer Configuration > Administrative Templates > Windows Components > Microsoft Defender Antivirus > Scan",
+   "name": "Scan archive files",
+   "admx": "WindowsDefender.admx",
+   "registry": "HKLM\\Software\\Policies\\Microsoft\\Windows Defender\\Scan\\DisableArchiveScanning"
+  }
+ },
+ "device_vendor_msft_policy_config_defender_allowrealtimemonitoring": {
+  "license": "Intune Plan 1",
+  "gpo": {
+   "path": "Computer Configuration > Administrative Templates > Windows Components > Microsoft Defender Antivirus > Real-time Protection",
+   "name": "Turn off real-time protection",
+   "admx": "WindowsDefender.admx",
+   "registry": "HKLM\\Software\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection\\DisableRealtimeMonitoring"
+  }
+ },
+ "device_vendor_msft_policy_config_defender_allowcloudprotection": {
+  "license": "Intune Plan 1",
+  "gpo": {
+   "path": "Computer Configuration > Administrative Templates > Windows Components > Microsoft Defender Antivirus > MAPS",
+   "name": "Join Microsoft MAPS",
+   "admx": "WindowsDefender.admx",
+   "registry": "HKLM\\Software\\Policies\\Microsoft\\Windows Defender\\Spynet"
+  }
+ },
+ "device_vendor_msft_policy_config_update_allowautoupdate": {
+  "license": "Intune Plan 1",
+  "gpo": {
+   "path": "Computer Configuration > Administrative Templates > Windows Components > Windows Update > Manage end user experience",
+   "name": "Configure Automatic Updates",
+   "admx": "WindowsUpdate.admx",
+   "registry": "HKLM\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU"
+  }
+ },
+ "device_vendor_msft_policy_config_system_allowtelemetry": {
+  "license": "Intune Plan 1",
+  "gpo": {
+   "path": "Computer Configuration > Administrative Templates > Windows Components > Data Collection and Preview Builds",
+   "name": "Allow Diagnostic Data",
+   "admx": "DataCollection.admx",
+   "registry": "HKLM\\Software\\Policies\\Microsoft\\Windows\\DataCollection"
+  }
+ },
+ "device_vendor_msft_policy_config_experience_allowcortana": {
+  "license": "Intune Plan 1",
+  "gpo": {
+   "path": "Computer Configuration > Administrative Templates > Windows Components > Search",
+   "name": "Allow Cortana",
+   "admx": "Search.admx",
+   "registry": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search\\AllowCortana"
+  }
+ },
+ "device_vendor_msft_policy_config_camera_allowcamera": {
+  "license": "Intune Plan 1",
+  "gpo": {
+   "path": "Computer Configuration > Administrative Templates > Windows Components > Camera",
+   "name": "Allow Use of Camera",
+   "admx": "Camera.admx",
+   "registry": "HKLM\\Software\\Policies\\Microsoft\\Camera\\AllowCamera"
+  }
+ },
+ "device_vendor_msft_policy_config_devicelock_devicepasswordenabled": {
+  "license": "Intune Plan 1"
+ },
+ "device_vendor_msft_bitlocker_requiredeviceencryption": {
+  "license": "Intune Plan 1 (seul paramètre BitLocker CSP utilisable sans licence Windows Enterprise E3/E5 ou A3/A5)"
+ },
+ "device_vendor_msft_laps_policies_backupdirectory": {
+  "license": "Intune Plan 1",
+  "gpo": {
+   "path": "Computer Configuration > Administrative Templates > System > LAPS",
+   "admx": "LAPS.admx"
+  }
+ },
+ "device_vendor_msft_laps_policies_passwordagedays": {
+  "license": "Intune Plan 1",
+  "gpo": {
+   "path": "Computer Configuration > Administrative Templates > System > LAPS",
+   "admx": "LAPS.admx"
+  }
+ },
+ "device_vendor_msft_passportforwork_{tenantid}_policies_usepassportforwork": {
+  "license": "Intune Plan 1"
+ }
+}

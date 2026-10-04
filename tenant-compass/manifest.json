@@ -1,0 +1,70 @@
+{
+  "manifest_version": 3,
+  "name": "Tenant Compass",
+  "version": "0.7.0",
+  "description": "Boîte à outils pour le portail Microsoft Intune : bon tenant, documentation, paramètres, affectations, journal des modifications.",
+  "author": "Alexandre Calligaro",
+  "minimum_chrome_version": "111",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": [
+    "scripting",
+    "storage",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "https://portal.azure.com/*",
+    "https://intune.microsoft.com/*",
+    "https://endpoint.microsoft.com/*",
+    "https://entra.microsoft.com/*",
+    "https://security.microsoft.com/*",
+    "https://admin.microsoft.com/*",
+    "https://purview.microsoft.com/*",
+    "https://compliance.microsoft.com/*",
+    "https://admin.exchange.microsoft.com/*",
+    "https://admin.teams.microsoft.com/*",
+    "https://*.portal.azure.net/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Tenant Compass",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
+  },
+  "options_ui": {
+    "page": "popup.html",
+    "open_in_tab": true
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "setting-inspector/data/*.json"
+      ],
+      "matches": [
+        "https://intune.microsoft.com/*",
+        "https://endpoint.microsoft.com/*",
+        "https://*.portal.azure.net/*"
+      ]
+    },
+    {
+      "resources": [
+        "change-snapshot/lib.js"
+      ],
+      "matches": [
+        "https://intune.microsoft.com/*",
+        "https://endpoint.microsoft.com/*",
+        "https://portal.azure.com/*",
+        "https://*.portal.azure.net/*"
+      ]
+    }
+  ]
+}

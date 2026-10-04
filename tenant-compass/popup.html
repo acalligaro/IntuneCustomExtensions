@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Tenant Compass</title>
+  <style>/*⁣​​‌​‌​​​​​​‌​​‌​‍​⁣*/
+    :root { --accent: #0078d4; --accent2: #5b5fc7; --bg: #f5f6f8; --card: #fff; --text: #1b1a19; --muted: #605e5c; --line: #e8e6e4; }
+    * { box-sizing: border-box; }
+    body { font: 13px/1.45 "Segoe UI Variable", "Segoe UI", system-ui, sans-serif; margin: 0; width: 580px; color: var(--text); background: var(--bg); }
+    header { padding: 16px 18px; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+    header { display: flex; gap: 10px; align-items: center; }
+    header img { border-radius: 7px; box-shadow: 0 0 0 1px rgba(255,255,255,.35); }
+    h1 { font-size: 17px; margin: 0; font-weight: 600; }
+    main { padding: 12px 14px 16px; }
+    .card { background: var(--card); border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.03); }
+    h2 { font-size: 11px; letter-spacing: .06em; margin: 0 0 8px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+    table { border-collapse: separate; border-spacing: 0 4px; width: 100%; }
+    th { text-align: left; font-weight: 600; color: var(--muted); font-size: 11.5px; padding: 0 4px; }
+    td { padding: 0 4px; }
+    input[type=text] { width: 100%; padding: 6px 9px; border: 1px solid var(--line); border-radius: 9px; background: #faf9f8; outline: none; transition: border-color .15s, box-shadow .15s; }
+    input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,120,212,.15); background: #fff; }
+    input[type=color] { width: 34px; height: 28px; padding: 0; border: 0; border-radius: 8px; background: none; cursor: pointer; }
+    input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+    .match { min-width: 240px; }
+    button { cursor: pointer; border: 0; border-radius: 9px; padding: 6px 12px; font: inherit; font-weight: 600; background: #eff6fc; color: #005a9e; transition: background .15s, transform .1s; }
+    button:hover { background: #deecf9; }
+    button:disabled { background: #f3f2f1; color: #8a8886; cursor: default; transform: none; }
+    button:active { transform: scale(.97); }
+    button.primary { background: var(--accent); color: #fff; }
+    button.primary:hover { background: #106ebe; }
+    td button { padding: 4px 9px; background: none; color: var(--muted); }
+    td button:hover { background: #fde7e9; color: #a4262c; }
+    .pick { position: relative; }
+    .pick summary { list-style: none; width: 34px; height: 28px; border-radius: 8px; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+    .pick summary::-webkit-details-marker { display: none; }
+    .pal { position: absolute; right: 0; top: 32px; z-index: 2; display: grid; grid-template-columns: repeat(6, 24px); gap: 6px; padding: 10px; min-width: 200px; background: #fff; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.06); }
+    .pal .more { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; white-space: nowrap; color: var(--muted); font-size: 12px; }
+    .pal .more div { display: flex; gap: 6px; align-items: center; }
+    .pal .more .cp { display: grid; grid-template-columns: 24px 1fr; gap: 6px; width: 100%; }
+    .pal .cp input[type=range] { grid-column: 1 / -1; -webkit-appearance: none; appearance: none; height: 12px; border-radius: 999px; margin: 0; cursor: pointer; }
+    .pal .cp .hue { background: linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); }
+    .pal .cp .lum { background: linear-gradient(90deg, #000, hsl(var(--h, 210) 75% 50%), #fff); }
+    .pal .cp input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px rgba(0,0,0,.35); }
+    .pal .cp input.hex { width: 100%; }
+    .pal .more .cp label.native { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; cursor: pointer; }
+    .pal .more input.hex { width: 84px; padding: 3px 7px; border: 1px solid var(--line); border-radius: 7px; font: 12px "Cascadia Code", Consolas, monospace; outline: none; }
+    .pal .more input.hex:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,120,212,.15); }
+    .pal .more input[type=color] { width: 24px; height: 24px; }
+    .pal .more label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+    .pal .more button { padding: 3px 10px; background: #eff6fc; color: #005a9e; white-space: nowrap; }
+    .sw { width: 24px; height: 24px; padding: 0; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }
+    #customs { display: inline-flex; gap: 6px; align-items: center; }
+    #customs .sw { color: #fff; font-size: 11px; }
+    .actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+    #current { background: var(--bg); padding: 8px 10px; border-radius: 10px; }
+    #current ul { margin: 6px 0 0; padding-left: 18px; }
+    #current li { margin: 3px 0; }
+    code { background: #fff; padding: 1px 6px; border-radius: 6px; }
+    .hint { color: var(--muted); font-size: 12px; }
+    .feature { display: flex; gap: 10px; align-items: flex-start; padding: 8px; border-radius: 10px; cursor: pointer; transition: background .12s; }
+    .feature:hover { background: var(--bg); }
+    .feature input { margin-top: 2px; }
+    .feature span { color: var(--muted); font-size: 12px; display: block; }
+    .reload { display: block; width: 100%; margin: 0 0 12px; padding: 10px 14px; font-size: 13px; line-height: 1.35; text-align: center; white-space: normal; }
+        .lang { margin-left: auto; display: flex; background: rgba(255,255,255,.15); border-radius: 999px; padding: 2px; }
+    .lang button { padding: 3px 9px; border-radius: 999px; background: none; color: #fff; font-size: 11.5px; }
+    .lang button:hover { background: rgba(255,255,255,.2); }
+    .lang button[aria-pressed=true] { background: #fff; color: #005a9e; }
+    .gear { width: 30px; height: 30px; padding: 0; border-radius: 50%; background: rgba(255,255,255,.15); color: #fff; font-size: 16px; }
+    .gear:hover, .gear[aria-pressed=true] { background: rgba(255,255,255,.32); }
+    .strip { margin: 0 0 10px; padding: 0 2px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+    .chips > * { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 600;
+                 background: #fff; color: var(--text); box-shadow: 0 0 0 1px var(--line); cursor: default; }
+    .chips > span::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #107c10; }
+    .chips button { padding: 0 6px; margin-right: -6px; border-radius: 999px; background: #eff6fc; font-size: 12px; line-height: 18px; }
+    .chips button:hover { background: #deecf9; }
+    .chips > button.solo { margin: 0; padding: 2px 8px; font-weight: 600; font-size: 11px; color: #005a9e; }
+    .pick-l { display: flex; flex-direction: column; gap: 3px; }
+    select { padding: 6px 9px; border: 1px solid var(--line); border-radius: 9px; background: #faf9f8; font: inherit; }
+    html.tab { background: #e9ebef; min-height: 100%; }
+    html.tab body { width: auto; max-width: 720px; margin: 32px auto; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,.12), 0 0 0 1px rgba(0,0,0,.04); }
+    html.tab main { padding: 16px 20px 22px; }
+    [hidden] { display: none !important; }
+  /*⁣​​‌​‌​​​​​​‌​​‌​‍​⁣*/</style>
+</head>
+<body>
+  <header>
+    <img src="icons/icon48.png" alt="" width="28" height="28"><h1>Tenant Compass</h1>
+    <div class="lang" role="group" aria-label="Langue / Language">
+      <button type="button" data-lang="fr" title="Français (FR)">FR</button><button type="button" data-lang="en" title="English (US)">EN</button>
+    </div>
+    <button type="button" id="gear" class="gear" data-i18n-title="menu.settings" aria-pressed="false">⚙</button>
+  </header>
+  <main>
+  <div class="strip" data-i18n-title="menu.active"><div id="active-list" class="chips"></div><span id="none" class="hint" data-i18n="menu.none" hidden></span><span id="pl-msg" class="hint"></span></div>
+  <button id="reload-btn" class="primary reload" data-i18n="menu.reloadBtn" hidden></button>
+
+  <div id="settings" hidden>
+  <section class="card">
+    <h2 data-i18n="menu.features"></h2>
+    <div id="toggles"></div>
+  </section>
+
+  <section class="card pl-only">
+    <h2 data-i18n="pl.title"></h2>
+    <div class="actions">
+      <label class="pick-l"><span class="hint" data-i18n="pl.lang"></span><select id="pl-lang"></select></label>
+      <label class="pick-l"><span class="hint" data-i18n="pl.format"></span><select id="pl-format"></select></label>
+    </div>
+    <p class="hint" data-i18n="pl.hint"></p>
+  </section>
+
+  <section class="card">
+    <h2 data-i18n="menu.display"></h2>
+    <div class="actions"><button id="reset-pos" data-i18n="menu.resetPos" data-i18n-title="menu.resetPos.title"></button> <span id="reset-msg" class="hint"></span></div>
+  </section>
+
+  </div>
+
+
+  <section class="card tg-only">
+    <h2 data-i18n="tg.current"></h2>
+    <div id="current"></div>
+  </section>
+
+  <section class="card tg-only">
+    <h2 data-i18n="tg.rules"></h2>
+    <table>
+      <thead><tr><th data-i18n="tg.col.match"></th><th data-i18n="tg.col.label"></th><th data-i18n="tg.col.color"></th><th data-i18n="tg.col.prod"></th><th></th></tr></thead>
+      <tbody id="rules"></tbody>
+    </table>
+    <div class="actions">
+      <button id="add" class="primary" data-i18n="tg.add"></button>
+      <button id="export" data-i18n="tg.export"></button>
+      <button id="import" data-i18n="tg.import"></button>
+      <input type="file" id="import-file" accept=".json,application/json" hidden>
+      <span id="io-msg" class="hint"></span>
+    </div>
+    <div class="actions"><span class="hint" data-i18n="tg.myColors"></span> <span id="customs" class="hint"></span></div>
+    <p class="hint" data-i18n="tg.hint"></p>
+  </section>
+
+  </main>
+
+  <script src="shared/i18n.js"></script>
+  <script src="tenant-guard/lib.js"></script>
+  <script src="tenant-guard/options.js"></script>
+  <script src="portal-language/lib.js"></script>
+  <script src="popup.js"></script>
+<!--⁣​​‌​‌​​​​​​‌​​‌​‍​⁣-->
+</body>
+</html>

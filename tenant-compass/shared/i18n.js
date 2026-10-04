@@ -1,0 +1,161 @@
+// UI strings, Français (FR) and English (US). Language stored in chrome.storage.sync key `lang`.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
+// Static text: data-i18n="key" (textContent) / data-i18n-title="key" (title). Dynamic text: t('key', { var }).⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
+// To add a language: add a dictionary below with the same keys and a button in popup.html (data-lang).⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
+
+const I18N = {
+  fr: {
+    'lang.name': 'Français (FR)',
+    'menu.settings': 'Paramètres : activer / désactiver les fonctions',
+    'menu.active': 'Fonctions actives',
+    'menu.none': 'Aucune fonction active. Cliquez sur ⚙ pour en activer.',
+    'menu.features': 'Fonctions',
+    'menu.reloadBtn': 'Recharger l\'onglet du portail pour appliquer (fonctions et langue) ↻',
+    'menu.display': 'Affichage',
+    'menu.resetPos': 'Positions par défaut',
+    'menu.resetPos.title': 'As-Built et Assignment Lens reviennent en bas à gauche (l\'onglet est rechargé)',
+    'menu.resetPos.done': 'Positions réinitialisées.',
+    'menu.resetPos.noTab': 'Ouvrez d\'abord l\'onglet du portail Intune.',
+    'menu.journal': 'Journal',
+    'menu.journal.title': 'Ouvrir le journal des modifications',
+    'f.tenantGuard': 'Tenant Guard',
+    'f.tenantGuard.desc': 'Bandeau du tenant actif, confirmation avant toute action dans un tenant PROD.',
+    'f.asBuilt': 'As-Built en un clic',
+    'f.asBuilt.desc': 'Export des stratégies en Markdown, Word et JSON (bouton dans le portail).',
+    'f.settingInspector': 'Setting Inspector',
+    'f.settingInspector.desc': 'Au survol d\'un paramètre : identifiant, OMA-URI, applicabilité, GPO, liens Learn.',
+    'f.assignmentLens': 'Assignment Lens',
+    'f.assignmentLens.desc': 'Groupes inclus / exclus, membres, filtres, chevauchements (bouton dans le portail).',
+    'f.changeSnapshot': 'Change Snapshot',
+    'f.changeSnapshot.desc': 'Journal des modifications : différence, auteur, n° de ticket, export JSON / CSV.',
+    'f.portalLanguage': 'Set Tenant Language',
+    'f.portalLanguage.desc': 'Passe la console (Intune, Azure, Entra) dans une langue et un format régional prédéfinis, en 1 clic.',
+    'pl.title': 'Set Tenant Language · langue prédéfinie',
+    'pl.lang': 'Langue de la console',
+    'pl.format': 'Format régional',
+    'pl.apply': 'Appliquer à l\'onglet : {code}',
+    'pl.noPortal': 'Ouvrez d\'abord un onglet Intune, Azure ou Entra.',
+    'pl.hint': 'Équivaut à Paramètres > Langue + région du portail ; l\'onglet est rechargé (modifications non enregistrées perdues).',
+    'tg.current': 'Tenant Guard · onglet actuel',
+    'tg.rules': 'Tenant Guard · tenants référencés',
+    'tg.col.match': 'Correspondance (domaine, GUID ou nom, séparés par virgule)',
+    'tg.col.label': 'Étiquette',
+    'tg.col.color': 'Couleur',
+    'tg.col.prod': 'PROD',
+    'tg.add': '+ Ajouter un tenant',
+    'tg.export': 'Exporter (JSON)',
+    'tg.import': 'Importer…',
+    'tg.myColors': 'Mes couleurs (5 max, clic pour retirer) :',
+    'tg.hint': 'Un tenant marqué PROD exige une confirmation avant Enregistrer, Supprimer, Attribuer, Créer, Wipe, Retire. L\'import fusionne : un tenant de même correspondance est remplacé.',
+    'tg.noPortal': 'Aucun portail Microsoft détecté dans cet onglet.',
+    'tg.detecting': 'Détection en cours…',
+    'tg.tenant': 'Tenant : {label}',
+    'tg.unknown': 'Tenant non référencé.',
+    'tg.noSignal': 'Aucun identifiant de tenant trouvé sur cette page.',
+    'tg.reference': 'Référencer',
+    'tg.known': 'Déjà référencé',
+    'tg.knownAs': 'Déjà référencé : {label}',
+    'tg.imported': '{n} tenant(s) importé(s).',
+    'tg.importError': 'Import impossible : {msg}',
+    'tg.pickColor': 'Choisir une couleur',
+    'tg.otherColor': 'Autre couleur',
+    'tg.other': 'Autre…',
+    'tg.hex': 'Code couleur #RRGGBB, puis Entrée',
+    'tg.applyHex': 'Appliquer cette couleur',
+    'tg.hue': 'Teinte',
+    'tg.lightness': 'Luminosité',
+    'tg.keep': '☆ Enregistrer',
+    'tg.keep.title': 'Ajouter la couleur de ce tenant à Mes couleurs ({max} max, la plus ancienne est remplacée)',
+    'tg.remove': 'Retirer {c}',
+    'tg.noCustom': 'aucune (☆ Enregistrer depuis le sélecteur d\'un tenant)',
+    'tg.delete': 'Supprimer',
+  },
+  en: {
+    'lang.name': 'English (US)',
+    'menu.settings': 'Settings: turn features on / off',
+    'menu.active': 'Active features',
+    'menu.none': 'No active feature. Click ⚙ to turn some on.',
+    'menu.features': 'Features',
+    'menu.reloadBtn': 'Reload the portal tab to apply (features and language) ↻',
+    'menu.display': 'Display',
+    'menu.resetPos': 'Reset positions',
+    'menu.resetPos.title': 'As-Built and Assignment Lens go back to the bottom left (the tab is reloaded)',
+    'menu.resetPos.done': 'Positions reset.',
+    'menu.resetPos.noTab': 'Open the Intune portal tab first.',
+    'menu.journal': 'Log',
+    'menu.journal.title': 'Open the change log',
+    'f.tenantGuard': 'Tenant Guard',
+    'f.tenantGuard.desc': 'Active tenant banner, confirmation before any action in a PROD tenant.',
+    'f.asBuilt': 'One-click As-Built',
+    'f.asBuilt.desc': 'Export policies to Markdown, Word and JSON (button in the portal).',
+    'f.settingInspector': 'Setting Inspector',
+    'f.settingInspector.desc': 'On setting hover: ID, OMA-URI, applicability, GPO, Learn links.',
+    'f.assignmentLens': 'Assignment Lens',
+    'f.assignmentLens.desc': 'Included / excluded groups, members, filters, overlaps (button in the portal).',
+    'f.changeSnapshot': 'Change Snapshot',
+    'f.changeSnapshot.desc': 'Change log: diff, author, ticket number, JSON / CSV export.',
+    'f.portalLanguage': 'Set Tenant Language',
+    'f.portalLanguage.desc': 'Switch the console (Intune, Azure, Entra) to a preset language and regional format in one click.',
+    'pl.title': 'Set Tenant Language · preset language',
+    'pl.lang': 'Console language',
+    'pl.format': 'Regional format',
+    'pl.apply': 'Apply to tab: {code}',
+    'pl.noPortal': 'Open an Intune, Azure or Entra tab first.',
+    'pl.hint': 'Same as the portal\'s Settings > Language + region; the tab reloads (unsaved changes are lost).',
+    'tg.current': 'Tenant Guard · current tab',
+    'tg.rules': 'Tenant Guard · known tenants',
+    'tg.col.match': 'Match (domain, GUID or name, comma-separated)',
+    'tg.col.label': 'Label',
+    'tg.col.color': 'Color',
+    'tg.col.prod': 'PROD',
+    'tg.add': '+ Add a tenant',
+    'tg.export': 'Export (JSON)',
+    'tg.import': 'Import…',
+    'tg.myColors': 'My colors (5 max, click to remove):',
+    'tg.hint': 'A tenant marked PROD requires a confirmation before Save, Delete, Assign, Create, Wipe, Retire. Import merges: a tenant with the same match is replaced.',
+    'tg.noPortal': 'No Microsoft portal detected in this tab.',
+    'tg.detecting': 'Detecting…',
+    'tg.tenant': 'Tenant: {label}',
+    'tg.unknown': 'Unknown tenant.',
+    'tg.noSignal': 'No tenant identifier found on this page.',
+    'tg.reference': 'Add',
+    'tg.known': 'Already known',
+    'tg.knownAs': 'Already known: {label}',
+    'tg.imported': '{n} tenant(s) imported.',
+    'tg.importError': 'Import failed: {msg}',
+    'tg.pickColor': 'Pick a color',
+    'tg.otherColor': 'Other color',
+    'tg.other': 'Other…',
+    'tg.hex': 'Color code #RRGGBB, then Enter',
+    'tg.applyHex': 'Apply this color',
+    'tg.hue': 'Hue',
+    'tg.lightness': 'Lightness',
+    'tg.keep': '☆ Save',
+    'tg.keep.title': 'Add this tenant\'s color to My colors ({max} max, the oldest is replaced)',
+    'tg.remove': 'Remove {c}',
+    'tg.noCustom': 'none (☆ Save from a tenant\'s color picker)',
+    'tg.delete': 'Delete',
+  },
+};
+const LANGS = Object.keys(I18N);
+
+let lang = (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en'; // until storage answers
+
+function t(key, vars) {
+  const s = I18N[lang][key] ?? I18N.fr[key] ?? key;
+  return vars ? s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m)) : s;
+}
+
+function applyI18n(root = document) {
+  document.documentElement.lang = lang === 'en' ? 'en-US' : 'fr-FR';
+  for (const n of root.querySelectorAll('[data-i18n]')) n.textContent = t(n.dataset.i18n);
+  for (const n of root.querySelectorAll('[data-i18n-title]')) n.title = t(n.dataset.i18nTitle);
+}
+
+function setLang(next) {
+  if (!LANGS.includes(next)) return;
+  lang = next;
+  chrome.storage.sync.set({ lang });
+}
+
+// Resolves once the stored language is known (popup.js waits for it before rendering).⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
+const i18nReady = chrome.storage.sync.get('lang').then(r => { if (LANGS.includes(r.lang)) lang = r.lang; }).catch(() => {});
