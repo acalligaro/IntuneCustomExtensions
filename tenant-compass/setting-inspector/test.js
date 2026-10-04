@@ -59,15 +59,23 @@ assert.deepStrictEqual(extractDefs(null), []);
   assert.strictEqual(licenseFor({ id: 'x', applicability: { platform: 'windows10', windowsSkus: ['windowsEnterprise'] } }, rules).proBlocked, true);
   assert.ok(!licenseFor({ id: 'device_vendor_msft_policy_config_defender_allowarchivescanning' }, rules).proBlocked);
 }
-// English licence texts through the in-page dictionary (lib default stays French, see above)⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
+// OpenIntuneBaseline (oib.js + data/oib.json): exact settingDefinitionId match, values shown with the setting's option labels.
 {
-  globalThis.document = { documentElement: { dataset: { tenantCompassLang: 'en' } } };
-  require('../shared/i18n-page.js');
-  require('./i18n.js');
-  const t = (k, fr) => { const s = __tenantCompassI18n.t(k); return s === k ? fr : s; };
-  assert.strictEqual(licenseFor({ id: 'x', applicability: { platform: 'windows10', windowsSkus: ['windowsEnterprise'] } }, rules, t).text, 'Windows Enterprise E3/E5 or Education A3/A5 (Pro edition not supported)');
-  assert.strictEqual(licenseFor({ id: 'device_vendor_msft_policy_config_camera_allowcamera' }, null, t).text, 'Included: Windows Pro + Intune Plan 1');
-  assert.strictEqual(licenseFor({ id: 'device_vendor_msft_policy_config_deviceguard_lsacfgflags' }, rules, t).text, 'Windows Enterprise E3/E5 or Education A3/A5');
-  assert.strictEqual(licenseFor({ id: 'x', license: 'Texte libre' }, rules, t).text, 'Texte libre');
+  const { oibFor, oibValue } = require('./oib.js');
+  const oib = require('./data/oib.json');
+  assert.ok(oib._meta.license === 'GPL-3.0' && oib._meta.commit && Object.keys(oib.settings).length > 1000, 'oib.json vide : lancer tools/build-oib.mjs');
+  for (const [id, list] of Object.entries(oib.settings)) assert.ok(id && list.every(x => x.p && Array.isArray(x.v)), id);
+  const id = 'device_vendor_msft_policy_config_defender_allowarchivescanning';
+  const hits = oibFor({ id }, oib);
+  assert.ok(hits.length && hits[0].p.includes('OIB'), 'OIB configure ' + id);
+  assert.deepStrictEqual(oibFor({ id: 'nope' }, oib), []);
+  assert.deepStrictEqual(oibFor(null, oib), []);
+  assert.deepStrictEqual(oibFor({ id }, null), []);
+  // Choice: portal option label (portal language), else itemId suffix; simple values as is
+  const def = { id, options: [{ itemId: id + '_0', displayName: 'Non autorisé' }, { itemId: id + '_1', displayName: 'Autorisé' }] };
+  assert.strictEqual(oibValue(id + '_1', def), 'Autorisé');
+  assert.strictEqual(oibValue(id + '_1', { id }), '1');
+  assert.strictEqual(oibValue(15, def), '15');
+  assert.strictEqual(oibValue('C:\\x', def), 'C:\\x');
 }
 console.log('ok');

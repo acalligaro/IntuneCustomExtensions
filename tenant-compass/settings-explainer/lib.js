@@ -86,7 +86,7 @@ function overlayFor(overlay, id) {
 function learnTarget(def) {
   const d = def || {};
   for (const u of d.infoUrls || []) {
-    const m = /^https:\/\/learn\.microsoft\.com\/(?:[a-z]{2}-[a-z]{2}\/)?windows\/client-management\/mdm\/([\w-]+)(?:#([\w-]+))?/i.exec(u);
+    const m = /^https:\/\/learn\.microsoft\.com\/(?:[a-z]{2}-[a-z]{2}\/)?windows\/client-management\/mdm\/([\w-]+)(?:\?[^#]*)?(?:#([\w-]+))?/i.exec(u);
     if (m) return { slug: m[1].toLowerCase(), anchor: m[2] ? m[2].toLowerCase() : null };
   }
   const uri = omaUri(d) || '';

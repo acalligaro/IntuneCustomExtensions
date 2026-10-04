@@ -9,6 +9,13 @@
   const setDelay = x => { const s = Number(x && x.hideDelay); if (Number.isFinite(s) && s >= 0 && s <= 60) hideDelay = s * 1000; };
   chrome.storage.sync.get('explainer').then(r => setDelay(r.explainer)).catch(() => {});
   chrome.storage.onChanged.addListener((c, area) => { if (area === 'sync' && c.explainer) setDelay(c.explainer.newValue); });
+  // One card, three modules toggled separately in the menu (chrome.storage.sync `features`): Setting Inspector (details),
+  // Settings Explainer (explanation) and OpenIntuneBaseline recommendations. background.js injects this card when any of them is on.
+  const MODULES = { settingInspector: true, settingsExplainer: true, oibRecommendations: true };
+  let mods = { ...MODULES };
+  const setMods = f => { mods = { ...MODULES, ...f }; };
+  chrome.storage.sync.get('features').then(r => setMods(r.features)).catch(() => {});
+  chrome.storage.onChanged.addListener((c, area) => { if (area === 'sync' && c.features) setMods(c.features.newValue); });
   const T = (k, v) => globalThis.__tenantCompassI18n ? __tenantCompassI18n.t(k, v) : k;
   // For lib.js: French fallback when the key is unknown (t() returns the key itself).
   const tr = (k, fr) => { const s = T(k); return s === k ? fr : s; };
@@ -19,14 +26,17 @@
   const LIVE = 'explainerLive'; // not Setting Inspector's `live`: our definitions keep more fields (description, options...)
   const byId = new Map(); // settingDefinitionId -> def (seed + live)
   let licenseRules;      // overlay._licenseRules (keys starting with _ are not setting ids)
+  let oib;               // OpenIntuneBaseline data (setting-inspector/oib.js, data/oib.json)
   function load() {
     // ponytail: every frame that gets hovered parses its own copy of the DB; move lookups to a service worker if memory hurts.
     // Seed and overlay (licence, GPO) are Setting Inspector's; only the curated explanations (level 3) are ours.
     const json = p => fetch(chrome.runtime.getURL(p)).then(r => r.json()).catch(() => ({}));
     return data ||= Promise.all([
       json('setting-inspector/data/settings.json'), json('setting-inspector/data/overlay.json'), json('settings-explainer/data/explain.json'),
+      json('setting-inspector/data/oib.json'),
       chrome.storage.local.get(LIVE).then(s => s[LIVE] || {}).catch(() => ({})),
-    ]).then(([db, overlay, explain, live]) => {
+    ]).then(([db, overlay, explain, oibData, live]) => {
+      oib = oibData;
       for (const [id, x] of Object.entries(explain)) overlay[id] = { ...overlay[id], ...x };
       for (const list of Object.values(db)) for (const d of list) byId.set(d.id, d);
       addLive(db, Object.values(live));
@@ -146,7 +156,7 @@
     .risk-medium { color: #8a5300; background: #fff4ce; }
     .cur { color: #0b6a0b; background: #dff6dd; }
     a { color: #0078d4; text-decoration: none; }
-    a:hover { text-decoration: underline; }`;
+    a:hover { text-decoration: underline; }` + OIB_CSS;
 
   function h(tag, props, ...kids) {
     const n = document.createElement(tag);
@@ -207,7 +217,16 @@
 
   function entry(e) {
     const title = h('div', { className: 'title' }, h('span', { textContent: e.displayName }));
-    const kids = [title, explanation(e, title)];
+    const kids = [title];
+    if (mods.oibRecommendations) kids.push(oibBlock(e, oib, title));
+    if (mods.settingsExplainer) kids.push(explanation(e, title));
+    if (mods.settingInspector) kids.push(...details(e, title));
+    return h('div', { className: 'entry' }, ...kids);
+  }
+
+  // Setting Inspector module: ID, OMA-URI, licence, minimum OS, GPO / registry, Learn links.
+  function details(e, title) {
+    const kids = [];
     if (e.id) {
       const btn = h('button', { type: 'button', textContent: T('settingsExplainer.copy') });
       btn.addEventListener('click', () => copy(e.id, btn));
@@ -235,7 +254,7 @@
     const urls = (e.infoUrls || []).filter(u => /^https:\/\//i.test(u));
     if (urls.length) kids.push(row('Learn', h('span', { className: 'links' },
       ...urls.map((u, i) => h('a', { href: u, target: '_blank', rel: 'noopener noreferrer', title: u, textContent: urls.length > 1 ? T('settingsExplainer.docN', { n: i + 1 }) : T('settingsExplainer.doc') })))));
-    return h('div', { className: 'entry' }, ...kids);
+    return kids;
   }
 
   let shown = 0; // incremented by every show(): a late Learn answer only refreshes the card it was asked for
@@ -280,6 +299,8 @@
       if (hits.length) {
         show(hits, target);
         const me = shown;
+        // Learn page: explanation (Settings Explainer) and GPO row (Setting Inspector); not needed for OIB alone.
+        if (!mods.settingsExplainer && !mods.settingInspector) return;
         const docs = await Promise.all(hits.slice(0, 2).map(learnDoc));
         if (me === shown && root.childElementCount && docs.some(Boolean)) show(hits.map((x, i) => (docs[i] ? { ...x, learn: docs[i] } : x)), target);
       }

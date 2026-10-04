@@ -1,6 +1,6 @@
 # Tenant Compass : architecture
 
-Document destiné aux mainteneurs. Il décrit ce que fait réellement le code de `tenant-compass/` (version `0.8.0` du manifeste). Les points non confirmés par la lecture du code sont marqués **à vérifier**.
+Document destiné aux mainteneurs. Il décrit ce que fait réellement le code de `tenant-compass/` (version `0.9.0` du manifeste). Les points non confirmés par la lecture du code sont marqués **à vérifier**.
 
 ---
 
@@ -12,8 +12,9 @@ Tenant Compass est une extension Chrome / Edge (**Manifest V3**, Chrome ≥ 111)
 |---|---|
 | **Tenant Guard** | Bandeau et cadre coloré du tenant actif, confirmation avant toute action d'écriture dans un tenant marqué PROD. |
 | **As-Built** | Bouton flottant : export des stratégies Intune en Markdown, Word (.doc) et JSON, plus les scripts (.ps1 / .sh). |
-| **Setting Inspector** | Carte au survol d'un paramètre du catalogue : ID, OMA-URI / clé, licence, version OS min., GPO, liens Learn. |
-| **Settings Explainer** | Option de Setting Inspector, utilisable seule : la même carte, précédée d'une explication (texte rédigé, page CSP Learn lue en direct, valeurs, valeur par défaut). |
+| **Setting Inspector** | Carte au survol d'un paramètre du catalogue, section détails : ID, OMA-URI / clé, licence, version OS min., GPO, liens Learn. |
+| **Settings Explainer** | Même carte, section explication (texte rédigé, page CSP Learn lue en direct, valeurs, valeur par défaut). Activable seule. |
+| **OpenIntuneBaseline** | Même carte, section OIB : valeur configurée par la baseline communautaire OpenIntuneBaseline (GPL-3.0) et stratégie concernée. Activable seule. |
 | **Assignment Lens** | Panneau sur une stratégie ou une application : groupes inclus / exclus, nombre de membres, filtres, chevauchements. |
 | **Change Snapshot** | Journal local des modifications de stratégies faites dans le portail : diff avant / après, auteur, n° de ticket, export JSON / CSV. |
 | **Set Tenant Language** | Pastille « 🌐 » du menu : recharge l'onglet du portail dans une langue et un format régional prédéfinis. |
@@ -61,16 +62,18 @@ tenant-compass/
 │   ├── page.js                   Observation du jeton, relais GET entre frames, UI et exports (MAIN world)
 │   └── test.js                   Tests Node
 ├── setting-inspector/
-│   ├── page-hook.js              Relaie les réponses Graph du portail et marque les lignes Knockout (MAIN world)
-│   ├── content.js                Base de définitions, détection au survol, carte (ISOLATED world)
 │   ├── lib.js                    Fonctions pures : normalize, omaUri, lookup, licenseFor, slim, buildDb, extractDefs
-│   ├── i18n.js                   Dictionnaire FR / EN (18 clés)
+│   ├── oib.js                    Section OpenIntuneBaseline de la carte : oibFor, oibValue, oibBlock, textes FR / EN (ISOLATED world)
 │   ├── test.js                   Tests Node
 │   ├── LICENSE-RULES-MAINTENANCE.md  Procédure de mise à jour des règles de licence
 │   ├── tools/build-db.mjs        Régénère data/settings.json depuis Graph (Node 18+, GRAPH_TOKEN)
+│   ├── tools/build-oib.mjs       Régénère data/oib.json depuis un clone d'OpenIntuneBaseline (Node 18+)
 │   └── data/
 │       ├── settings.json         Base de définitions embarquée (graine : 12 entrées)
-│       └── overlay.json          `_licenseRules` (11 règles) + surcharges par ID (GPO, licence)
+│       ├── overlay.json          `_licenseRules` (11 règles) + surcharges par ID (GPO, licence)
+│       ├── oib.json              Paramètres configurés par OpenIntuneBaseline, par settingDefinitionId (GPL-3.0)
+│       ├── OIB-NOTICE.md         Crédit, modifications, source correspondante, absence de garantie (GPL-3.0)
+│       └── OIB-LICENSE.txt       Texte de la GPL-3.0
 ├── settings-explainer/
 │   ├── page-hook.js              Copie de celui de Setting Inspector + champs d'explication (description, options, défaut, risque) ; attribut data-se-def (MAIN world)
 │   ├── content.js                Carte : explication puis détails Setting Inspector, ancrée au bord droit, délai de fermeture réglable (ISOLATED world)
@@ -256,36 +259,31 @@ sequenceDiagram
 
 **Tests.** `as-built/test.js` : échappements, lignes catalogue / modèles / ADMX / affectations, résumés, documents, JSON (masquage, `jwtTid`), noms de fichiers, scripts et licence des remédiations.
 
-### 4.3 Setting Inspector
+### 4.3 Setting Inspector, Settings Explainer et OpenIntuneBaseline : une carte
 
-**Rôle.** Au survol d'un paramètre du catalogue de paramètres, afficher une carte : nom, ID (copiable), OMA-URI ou clé (copiable), licence requise, badge « Windows Pro » barré, version OS minimale, GPO équivalente et registre (overlay), liens Learn.
+**Rôle.** Au survol d'un paramètre du catalogue, **une seule carte** réunit trois modules activables séparément (clés `features.settingInspector`, `features.settingsExplainer`, `features.oibRecommendations`) :
 
-**Scripts.**
+| Module | Section de la carte | Code |
+|---|---|---|
+| OpenIntuneBaseline | En tête : valeur configurée par la baseline OpenIntuneBaseline et nom de la stratégie OIB (badge `OIB` dans le titre), crédit (auteur, GPL-3.0, commit, lien) ; « Non configuré par OpenIntuneBaseline » sinon | `setting-inspector/oib.js`, `setting-inspector/data/oib.json` |
+| Settings Explainer | Explication (niveaux 1 à 3, section 4.7) | `settings-explainer/` |
+| Setting Inspector | Détails : ID (copiable), OMA-URI ou clé (copiable), licence, badge « Windows Pro » barré, version OS min., GPO et registre (overlay ou Learn), liens Learn | `settings-explainer/content.js` (`details()`), `setting-inspector/data/settings.json` et `overlay.json` |
 
-| ID enregistré | Fichiers | World | run_at | allFrames | matches |
-|---|---|---|---|---|---|
-| `setting-inspector-hook` | `setting-inspector/page-hook.js` | MAIN | `document_start` | oui | `intune.microsoft.com`, `endpoint.microsoft.com`, `*.portal.azure.net` |
-| `setting-inspector` | `setting-inspector/lib.js`, `setting-inspector/content.js` | ISOLATED | `document_start` | oui | idem |
+**Scripts.** La carte est le script de Settings Explainer (section 4.7), avec `setting-inspector/oib.js` entre `lib.js` et `content.js`. `apply()` (`background.js`) l'enregistre dès qu'un des trois modules est actif ; `content.js` lit `features` dans `chrome.storage.sync` (et ses changements, sans rechargement) et n'affiche que les sections actives. La page Learn n'est demandée que si Settings Explainer ou Setting Inspector est actif. L'ancienne carte séparée de Setting Inspector (`content.js`, `page-hook.js`, `i18n.js`) n'existe plus.
 
-**Flux.**
+**Licence (Windows).** `licenseFor` : surcharge `overlay[id].license` > première règle `_licenseRules` (sous-chaîne de l'ID ou de l'OMA-URI) > `windowsSkus` sans Pro > texte par défaut. Procédure de maintenance : `setting-inspector/LICENSE-RULES-MAINTENANCE.md`.
 
-1. `page-hook.js` (MAIN) enveloppe `fetch` et `XMLHttpRequest.open`. Pour les réponses réussies du portail à `$batch` et `deviceManagement/(configurationSettings|configurationPolicies|configurationPolicyTemplates|reusableSettings|inventoryPolicies|compliancePolicies)`, il poste le JSON à sa propre fenêtre : `window.postMessage({ type: 'setting-inspector:graph', json }, location.origin)`. **Aucun jeton lu ni transmis.**
-2. `page-hook.js` écoute aussi `mouseover` : si `window.ko` existe, il lit le view model Knockout de la ligne (`ko.dataFor(el).settingVM`) et pose `data-si-def` (JSON : id, displayName, baseUri, offsetUri, applicability, infoUrls). Cela rend la détection indépendante de la langue du portail.
-3. `content.js` (ISOLATED) accepte le message seulement si `e.source === window`, extrait les définitions (`extractDefs`), les fusionne en mémoire et dans `chrome.storage.local` `live` (partagé entre frames ; `storage.onChanged` met à jour les autres).
-4. Au survol (debounce 150 ms) : `find()` lit d'abord `[data-si-def]`, sinon remonte jusqu'à 6 ancêtres et teste `aria-label`, `title`, `innerText` (≤ 300 caractères) contre la base (`lookup` : clé normalisée exacte, sinon plus long préfixe ≥ 8 caractères).
-5. Base chargée paresseusement au premier survol : `data/settings.json` + `data/overlay.json` via `fetch(chrome.runtime.getURL(...))` (déclarés dans `web_accessible_resources`) + `live`.
+**OIB, correspondance.** `oibFor` : clé exacte `settingDefinitionId` dans `oib.json` (pas d'heuristique). `oibValue` : une valeur à choix est un `itemId` d'option (`<id>_<x>`), affiché avec le libellé de l'option fourni par la définition du paramètre (donc dans la langue du portail), sinon le suffixe ; valeurs simples telles quelles. Libellés de la section : dictionnaire `oib.*` ajouté par `oib.js` lui-même.
 
-**Aucun appel Graph émis.**
+**OIB, données et licence.** `setting-inspector/tools/build-oib.mjs <clone OpenIntuneBaseline>` (Node 18+, sans dépendance) lit `<PLATEFORME>/IntuneManagement/SettingsCatalog/*.json` (UTF-8 ou UTF-16) et écrit `data/oib.json` : `{ _meta: { source, url, license: 'GPL-3.0', versions, commit, policies, settings }, settings: { <settingDefinitionId>: [{ p: <nom de stratégie>, v: [valeurs] }] } }`. OpenIntuneBaseline est sous GPL-3.0 : `oib.json` (version modifiée) est distribué sous la même licence, avec `data/OIB-LICENSE.txt` (texte) et `data/OIB-NOTICE.md` (auteur, modifications et date, source correspondante = dépôt OIB au commit + script, absence de garantie). Le reste de l'extension garde sa licence (agrégat, GPL-3.0 section 5). La carte affiche le crédit et le lien vers la source.
 
-**Licence.** `licenseFor` : surcharge `overlay[id].license` > première règle `_licenseRules` (sous-chaîne de l'ID ou de l'OMA-URI) > `windowsSkus` sans Pro > texte par défaut. Procédure de maintenance : `setting-inspector/LICENSE-RULES-MAINTENANCE.md`.
+**Aucun appel Graph ni réseau** pour OIB : données embarquées.
 
-**Stockage.** `chrome.storage.local` `live`.
+**Stockage.** `chrome.storage.local` `explainerLive` (section 4.7). L'ancienne clé `live` n'est plus écrite.
 
-**UI.** Shadow DOM ouvert (hôte `#setting-inspector`), carte de 340 px toujours contre le bord droit de la fenêtre (comme Settings Explainer), à la hauteur de la ligne survolée, deux entrées max, masquée 400 ms après la sortie. Diagnostics en `console.info` (frame accrochée, chemins Graph vus, survols sans correspondance).
+**`lib.js` de Setting Inspector.** `normalize`, `omaUri`, `lookup`, `licenseFor`, `slim`, `buildDb`, `extractDefs` : utilisé par `tools/build-db.mjs` et les tests. **`oib.js`** : `oibFor`, `oibValue` (purs), `oibBlock`, `OIB_CSS` (carte).
 
-**`lib.js`.** `normalize`, `omaUri`, `lookup`, `licenseFor`, `slim`, `buildDb`, `extractDefs` (fonctions globales du content script, exportées pour Node).
-
-**Tests.** `setting-inspector/test.js` : normalisation, OMA-URI, `buildDb` / `lookup`, `licenseFor` avec les vraies règles de `overlay.json`, `extractDefs` (liste, `$batch`), drapeau `proBlocked`.
+**Tests.** `setting-inspector/test.js` : normalisation, OMA-URI, `buildDb` / `lookup`, `licenseFor` avec les vraies règles de `overlay.json`, `extractDefs`, drapeau `proBlocked`, `oib.json` (licence, commit, forme), `oibFor`, `oibValue`.
 
 ### 4.4 Assignment Lens
 
@@ -433,7 +431,7 @@ Le paramètre `l=` est un comportement **observé** du portail, **non documenté
 | 2 | Description Learn (FR si la page française se lit), notes Microsoft (section « Editable »), valeurs autorisées, plage, GPO et registre | Page CSP Learn lue en direct par le service worker |
 | 3 | Ce que fait le paramètre, effet, pièges, recommandation, sources (badge « Expliqué ») | `settings-explainer/data/explain.json` |
 
-**Activation.** Clé `features.settingsExplainer`. Quand Setting Inspector et Settings Explainer sont tous deux actifs, `apply()` n'enregistre que Settings Explainer : sa carte contient déjà tout Setting Inspector (une seule carte par survol). Le menu affiche la bascule en retrait sous Setting Inspector et masque alors la pastille Setting Inspector.
+**Activation.** Clé `features.settingsExplainer` pour la section explication. Ses scripts portent la carte commune aux trois modules : `apply()` les enregistre dès que Setting Inspector, Settings Explainer ou OpenIntuneBaseline est actif (section 4.3). Le menu affiche les bascules Settings Explainer et OpenIntuneBaseline en retrait sous Setting Inspector, sans lien entre elles ; le délai avant fermeture (⚙) s'affiche dès qu'un des trois est actif.
 
 **Scripts.**
 
@@ -470,7 +468,7 @@ Le paramètre `l=` est un comportement **observé** du portail, **non documenté
 
 ### 5.2 Activation
 
-- Clé `chrome.storage.sync` **`features`** : `{ tenantGuard, asBuilt, settingInspector, settingsExplainer, assignmentLens, changeSnapshot, portalLanguage }`, booléens. Settings Explainer actif retire Setting Inspector de l'enregistrement (section 4.7).
+- Clé `chrome.storage.sync` **`features`** : `{ tenantGuard, asBuilt, settingInspector, settingsExplainer, oibRecommendations, assignmentLens, changeSnapshot, portalLanguage }`, booléens. Les trois modules de la carte de paramètre sont indépendants : la carte est enregistrée dès que l'un d'eux est actif (section 4.3).
 - Défauts : **tout à `true`**. L'objet `DEFAULTS` est dupliqué dans `background.js` et `popup.js` (commentaire « keep in sync »). Les valeurs stockées sont fusionnées sur les défauts, donc une nouvelle fonction est active par défaut chez les utilisateurs existants.
 - `popup.js` : chaque case générée écrit `features`, affiche le bouton de rechargement et redessine le menu.
 - `background.js` `apply()` : lit `features` et `lang`, **désenregistre tous** les scripts enregistrés, puis enregistre le marqueur `ui-lang` et ceux des fonctions actives (`SCRIPTS[clé]`, passés par `withI18n`). Une fonction sans entrée `SCRIPTS` (Set Tenant Language) n'enregistre rien. Si Tenant Guard est désactivé, le badge est vidé.
@@ -571,8 +569,8 @@ Le jeton n'est jamais écrit dans `chrome.storage`, `localStorage`, la console, 
 | Permission | Pourquoi |
 |---|---|
 | `scripting` | `registerContentScripts` / `unregisterContentScripts` / `getRegisteredContentScripts` (background) ; `executeScript` pour « Positions par défaut » (popup) |
-| `storage` | `features`, `lang`, `portalLang`, `rules`, `customColors`, `explainer` (sync), `live`, `explainerLive`, `learn3:<lang>:<page>` et `e:<id>` (local), état par onglet (session) |
-| `unlimitedStorage` | Lève le quota de `chrome.storage.local` : journal Change Snapshot (`e:<id>`, avec JSON avant / après, raison donnée par `change-snapshot/README.md`) et cache `live` de Setting Inspector |
+| `storage` | `features`, `lang`, `portalLang`, `rules`, `customColors`, `explainer` (sync), `explainerLive`, `learn3:<lang>:<page>` et `e:<id>` (local), état par onglet (session) |
+| `unlimitedStorage` | Lève le quota de `chrome.storage.local` : journal Change Snapshot (`e:<id>`, avec JSON avant / après, raison donnée par `change-snapshot/README.md`) et cache `explainerLive` de la carte de paramètre |
 | `host_permissions` (12 origines : 11 portails + `learn.microsoft.com`, lu par Settings Explainer ; rien n'y est injecté, `background.js` filtre cette origine via `PORTALS`) | Injection des content scripts (marqueur `ui-lang` et Tenant Guard sur toutes ; Change Snapshot sur Intune / endpoint / `portal.azure.com` / `*.portal.azure.net` ; autres fonctions sur Intune / endpoint / `*.portal.azure.net`) et `executeScript` dans l'onglet actif ; lecture de `tab.url` de l'onglet actif par Set Tenant Language |
 
 Pas de permission `tabs` ni `activeTab` : `tabs.query`, `tabs.reload`, `tabs.update`, `tabs.create`, `tabs.sendMessage` et l'API `action` n'en ont pas besoin pour l'usage fait ici (`tab.url` est fourni pour les origines couvertes par `host_permissions`). `web_accessible_resources` expose `setting-inspector/data/*.json` et `settings-explainer/data/*.json` aux origines Intune / endpoint / `*.portal.azure.net`, et `change-snapshot/lib.js` à ces origines plus `portal.azure.com` (repli d'import de `content.js`). Une ressource web accessible permet à une page de détecter la présence de l'extension.
@@ -583,16 +581,15 @@ Pas de permission `tabs` ni `activeTab` : `tabs.query`, `tabs.reload`, `tabs.upd
 
 | Zone | Clé | Propriétaire | Forme |
 |---|---|---|---|
-| `chrome.storage.sync` | `features` | `popup.js` (écrit), `background.js` (lit) | `{ tenantGuard: bool, asBuilt: bool, settingInspector: bool, settingsExplainer: bool, assignmentLens: bool, changeSnapshot: bool, portalLanguage: bool }` |
+| `chrome.storage.sync` | `features` | `popup.js` (écrit), `background.js` (lit) | `{ tenantGuard: bool, asBuilt: bool, settingInspector: bool, settingsExplainer: bool, oibRecommendations: bool, assignmentLens: bool, changeSnapshot: bool, portalLanguage: bool }` |
 | `chrome.storage.sync` | `lang` | `shared/i18n.js` (`setLang` écrit, `i18nReady` lit) ; lu aussi par `background.js` (marqueur `ui-lang`) et `journal.js` | `'fr'` ou `'en'` ; absent → langue du navigateur |
 | `chrome.storage.sync` | `portalLang` | Set Tenant Language (`popup.js`) | `{ lang: string, format: string }`, codes de `LANGUAGES` / `FORMATS` ; défaut `{ lang: 'en', format: 'en-us' }` |
 | `chrome.storage.sync` | `rules` | Tenant Guard (`options.js` écrit, `content.js` lit) | `[{ match: string, label: string, color: '#rrggbb', prod: bool }]` |
 | `chrome.storage.sync` | `customColors` | Tenant Guard (`options.js`) | `['#rrggbb', …]`, 5 max |
 | `chrome.storage.session` | `t<tabId>` | Tenant Guard (`background.js` écrit, `options.js` lit) | `{ signals: string[], signal, label, color, prod: bool, detecting: bool }` ; supprimé à la fermeture de l'onglet |
 | `chrome.storage.sync` | `explainer` | Settings Explainer (`popup.js` écrit, `content.js` lit) | `{ hideDelay: number }` secondes, défaut 2 |
-| `chrome.storage.local` | `explainerLive` | Settings Explainer (`content.js`) | comme `live`, plus `description`, `helpText`, `riskLevel`, `defaultOptionId`, `defaultValue`, `options` |
+| `chrome.storage.local` | `explainerLive` | Carte de paramètre (`settings-explainer/content.js`) | `{ [settingDefinitionId]: { id, displayName, baseUri?, offsetUri?, applicability?, infoUrls?, description?, helpText?, riskLevel?, defaultOptionId?, defaultValue?, options? } }` |
 | `chrome.storage.local` | `learn3:<fr\|en>:<page>` | Settings Explainer (`background.js`) | `{ at: epoch ms, data: { lang, entries: [{ anchor, uris, description?, notes?, format?, default?, range?, allowed?, gp? }] } }`, 7 jours |
-| `chrome.storage.local` | `live` | Setting Inspector (`content.js`) | `{ [settingDefinitionId]: { id, displayName, baseUri?, offsetUri?, applicability?, infoUrls? } }` |
 | `chrome.storage.local` | `e:<id>` (une clé par entrée) | Change Snapshot (`content.js` écrit, `journal.js` lit et supprime) | `{ id, ts, tenantId, user, policyId, policyType, policyName, method, url, ticket, comment, before, after, diff }` ; pas de purge automatique |
 | `localStorage` (portail) | `tenant-compass:pos:as-built-fab` | `shared/drag.js` pour As-Built | `{ x: number, y: number }` |
 | `localStorage` (portail) | `tenant-compass:pos:as-built-panel` | idem | `{ x, y }` |
@@ -617,9 +614,9 @@ Tirées des commentaires `ponytail:` et du `README.md`.
 | `as-built/lib.js` | Plateforme déduite d'un préfixe du type OData | Étendre si une famille s'affiche « ? » |
 | `as-built/page.js` | Pause de 250 ms entre téléchargements | ZIP au-delà d'environ 50 fichiers |
 | `setting-inspector/lib.js` | `lookup` parcourt linéairement les clés en repli | Trie si cela devient lent |
-| `setting-inspector/page-hook.js` | Tag `data-si-def` mis en cache sur l'élément ; carte périmée si Knockout recycle le nœud | — |
-| `setting-inspector/content.js` | Chaque frame survolée charge sa propre copie de la base | Recherches dans le service worker si la mémoire pèse |
-| `setting-inspector/content.js` | Lecture-modification-écriture de `live` : des frames concurrentes peuvent perdre un lot | Recapturé au prochain chargement du portail |
+| `settings-explainer/page-hook.js` | Tag `data-se-def` mis en cache sur l'élément ; carte périmée si Knockout recycle le nœud | — |
+| `settings-explainer/content.js` | Chaque frame survolée charge sa propre copie de la base | Recherches dans le service worker si la mémoire pèse |
+| `settings-explainer/content.js` | Lecture-modification-écriture de `explainerLive` : des frames concurrentes peuvent perdre un lot | Recapturé au prochain chargement du portail |
 | `assignment-lens/lib.js` | Parcours d'un message plafonné à 2000 nœuds | — |
 | `assignment-lens/page.js` | `MAX_PAGES = 10` (environ 1000 objets par collection), résultat marqué tronqué | Augmenter pour les très gros tenants |
 | `change-snapshot/lib.js` | Liste fixe de collections suivies | L'étendre quand un type de stratégie manque au journal |
@@ -633,7 +630,8 @@ Tirées des commentaires `ponytail:` et du `README.md`.
 | `settings-explainer/lib.js` | Page Learn déduite des `infoUrls`, sinon de l'OMA-URI (`policy-csp-<zone>`, `<csp>-csp`) : un CSP dont la page porte un autre nom n'a pas de niveau 2 | Table de correspondance si des cas apparaissent |
 | `settings-explainer/content.js` | Dans une iframe du portail, la carte s'ancre au bord droit de l'iframe, pas de la fenêtre | Relayer l'affichage au frame top |
 | `settings-explainer/data/explain.json` | 12 explications rédigées ; à relire quand Microsoft change un comportement | Cibler les paramètres à pièges (50 à 100), pas tout le catalogue |
-| `settings-explainer/*` | `page-hook.js`, `lib.js` et `content.js` dupliquent ceux de Setting Inspector (même base de code étendue) | Fusionner les deux fonctions si Setting Inspector seul n'a plus d'usage |
+| `settings-explainer/lib.js` | Copie étendue de `setting-inspector/lib.js` (celui-ci ne sert plus qu'à `build-db.mjs` et aux tests) | Ne garder qu'un `lib.js` |
+| `setting-inspector/data/oib.json` | Instantané d'OpenIntuneBaseline (commit dans `OIB-NOTICE.md`) : à régénérer à chaque version OIB | — |
 | `background.js` (`withI18n`) | Chrome n'injecte un fichier qu'une fois par frame, tous mondes confondus : l'assistant i18n existe en deux copies identiques, et aucun fichier ne doit être listé dans les deux mondes | Tests d'égalité et d'absence de fichier partagé dans `tenant-guard/test.js` |
 | `shared/i18n-page.js` | Langue lue au chargement des scripts : un changement de langue ne s'applique aux onglets du portail qu'après rechargement | — |
 | `*/lib.js` | Défauts français inline (tests Node) dupliqués avec le `fr` des `i18n.js` | Les garder alignés à la main |
@@ -646,7 +644,7 @@ Autres constats à la lecture du code :
 
 - `change-snapshot/README.md` décrit encore l'extension autonome (installation du dossier `change-snapshot/`, `manifest.json` propre, « aucune permission d'hôte », journal ouvert par clic sur l'icône) : dans Tenant Compass, le journal s'ouvre depuis le menu et l'extension a des `host_permissions`. Les sections fonctionnement, sécurité et limites restent valables.
 - Assignment Lens ne fonctionne pas sur `endpoint.microsoft.com` (`TOP` fixé à `intune.microsoft.com`, absent des `matches`).
-- `data/settings.json` ne contient qu'une graine de 12 paramètres ; la couverture réelle dépend des définitions capturées dans `live`.
+- `data/settings.json` ne contient qu'une graine de 12 paramètres ; la couverture réelle dépend des définitions capturées dans `explainerLive`.
 - As-Built, Assignment Lens, Setting Inspector (ou Settings Explainer) et Change Snapshot enveloppent chacun `window.fetch` / `XMLHttpRequest` dans la même frame (Change Snapshot enveloppe aussi `Worker`). L'ordre d'enveloppement entre scripts enregistrés séparément n'est pas garanti par le code (**à vérifier**) ; chaque wrapper rappelle l'original et ne modifie pas la requête, donc l'ordre ne devrait pas changer le comportement.
 
 ---

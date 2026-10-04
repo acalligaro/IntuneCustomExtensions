@@ -23,6 +23,7 @@ Detailed architecture (scripts, flows, security, storage), in French: [ARCHITECT
 - [Assignment Lens](#assignment-lens)
 - [Setting Inspector](#setting-inspector)
 - [Settings Explainer](#settings-explainer)
+- [OpenIntuneBaseline](#openintunebaseline)
 - [Change Snapshot](#change-snapshot)
 - [Set Tenant Language](#set-tenant-language)
 - [Moving panels](#moving-panels)
@@ -120,11 +121,11 @@ Tenant detection, by priority: URL (`tid=`, `tenantId=`, `ctid=`, `#@domain`), d
 
 ## Setting Inspector
 
-On setting hover (settings catalog, endpoint security, policy editor or summary): a card on the right edge of the window, with the definition ID, the OMA-URI (Windows) or key (macOS / iOS), applicability, the license and the equivalent GPO (`data/overlay.json`), and the Microsoft Learn links. The setting is recognized by its ID, read from the page's model: it works whatever the portal language. The bottom part of the [Settings Explainer](#settings-explainer) cards shows exactly this content.
+On setting hover (settings catalog, endpoint security, policy editor or summary): a card on the right edge of the window. It gathers three sections toggled separately in ⚙: Setting Inspector (details, below), [Settings Explainer](#settings-explainer) (explanation) and [OpenIntuneBaseline](#openintunebaseline). The Setting Inspector section gives the definition ID, the OMA-URI (Windows) or key (macOS / iOS), applicability, the license and the equivalent GPO (`data/overlay.json`), and the Microsoft Learn links. The setting is recognized by its ID, read from the page's model: it works whatever the portal language.
 
 Data (`setting-inspector/data/`):
 
-- `settings.json`: Graph definitions indexed by normalized name. The shipped base only holds 12 settings; the others are captured while browsing (the portal's Graph responses, kept in `chrome.storage.local`, key `live`).
+- `settings.json`: Graph definitions indexed by normalized name. The shipped base only holds 12 settings; the others are captured while browsing (the portal's Graph responses, kept in `chrome.storage.local`, key `explainerLive`).
 - `overlay.json`: license and equivalent GPO, which Graph does not expose. Merged at run time: edit the file, then reload the extension.
 
 Rebuild the full base (Node 18+, no dependency, account with `DeviceManagementConfiguration.Read.All`):
@@ -152,7 +153,7 @@ License rules: see `setting-inspector/LICENSE-RULES-MAINTENANCE.md`.
 
 ## Settings Explainer
 
-Setting Inspector option (indented toggle in ⚙), usable on its own. On setting hover, the card **explains** the setting before showing the Setting Inspector details. When both features are on, only the Settings Explainer card shows. The card always sits on the right edge of the window, at the height of the hovered row, and stays for the delay set in ⚙ after the pointer leaves the setting (so you can hover it, scroll it, open its sections and click its links).
+Section of the setting card (indented toggle under Setting Inspector in ⚙), usable on its own. On setting hover, the card **explains** the setting before the Setting Inspector details (when on). The card always sits on the right edge of the window, at the height of the hovered row, and stays for the delay set in ⚙ after the pointer leaves the setting (so you can hover it, scroll it, open its sections and click its links).
 
 It combines three levels of information:
 
@@ -177,6 +178,21 @@ Explanations shipped (12 settings, FR and EN, checked against Learn by an indepe
 The Learn page is read without cookies, only on `learn.microsoft.com/…/windows/client-management/mdm/`, and cached for 7 days. No tenant data is sent.
 
 Adding an explanation: an entry in `explain.json`, under the setting ID, with `fr` and `en` (`what`, `impact`, `pitfalls`, `recommendation`, `sources`). `test.js` checks the ID, both languages and the sources. Only write one for settings with pitfalls (interactions, Intune context, a reasoned recommendation): for the others, the Learn page is enough.
+
+## OpenIntuneBaseline
+
+Third section of the setting card (indented toggle under Setting Inspector in ⚙), usable on its own. When the [OpenIntuneBaseline](https://openintunebaseline.com/) community baseline (OIB, SkipToTheEndpoint) configures the hovered setting, the card shows at the top the value set by OIB and the name of the OIB policy that sets it, with an `OIB` badge in the title. Otherwise: "Not configured by OpenIntuneBaseline". The link uses the exact setting ID (`settingDefinitionId`): it works whatever the portal language, and a choice value shows with the portal's label (in French when the portal is).
+
+OIB is an author's baseline (inspired by CIS, NCSC and other frameworks), not a compliance standard: each organization decides which settings fit, and policies must be tested before deployment.
+
+Data: `setting-inspector/data/oib.json` (80 Settings Catalog policies: Windows v4.0, macOS and Windows 365, 1,602 settings), built from the OIB repository (Node 18+, no dependency):
+
+```sh
+git clone --depth 1 https://github.com/SkipToTheEndpoint/OpenIntuneBaseline.git /tmp/oib
+node setting-inspector/tools/build-oib.mjs /tmp/oib   # from tenant-compass/, overwrites data/oib.json
+```
+
+License: OpenIntuneBaseline is under **GPL-3.0**. `oib.json` is a modified version (extraction) distributed under the same license; the rest of Tenant Compass keeps its own license. Credit, changes, source and no-warranty statement: `setting-inspector/data/OIB-NOTICE.md`; license text: `setting-inspector/data/OIB-LICENSE.txt`. The card shows the author, the license and a link to the source. After an update, report the commit and date in `OIB-NOTICE.md`.
 
 ## Change Snapshot
 

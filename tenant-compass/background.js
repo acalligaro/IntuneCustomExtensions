@@ -22,23 +22,8 @@ const SCRIPTS = {
     runAt: 'document_start',
     world: 'MAIN',
   }],
-  settingInspector: [{
-    id: 'setting-inspector-hook',
-    i18n: false,
-    matches: ['https://intune.microsoft.com/*', 'https://endpoint.microsoft.com/*', 'https://*.portal.azure.net/*'],
-    js: ['setting-inspector/page-hook.js'],
-    allFrames: true,
-    runAt: 'document_start',
-    world: 'MAIN',
-  }, {
-    id: 'setting-inspector',
-    matches: ['https://intune.microsoft.com/*', 'https://endpoint.microsoft.com/*', 'https://*.portal.azure.net/*'],
-    js: ['setting-inspector/lib.js', 'setting-inspector/content.js'],
-    allFrames: true,
-    runAt: 'document_start',
-  }],
-  // Sub-option of Setting Inspector, usable on its own. Its card includes everything Setting Inspector shows,
-  // so when both are on only Settings Explainer is injected (one card per hover).
+  // The setting card. Three modules toggled separately (Setting Inspector details, Settings Explainer, OpenIntuneBaseline recommendations),
+  // shown in this one card: injected when any of them is on (see apply()), content.js reads `features` to pick the sections.
   settingsExplainer: [{
     id: 'settings-explainer-hook',
     i18n: false,
@@ -50,7 +35,7 @@ const SCRIPTS = {
   }, {
     id: 'settings-explainer',
     matches: ['https://intune.microsoft.com/*', 'https://endpoint.microsoft.com/*', 'https://*.portal.azure.net/*'],
-    js: ['settings-explainer/lib.js', 'settings-explainer/content.js'],
+    js: ['settings-explainer/lib.js', 'setting-inspector/oib.js', 'settings-explainer/content.js'],
     allFrames: true,
     runAt: 'document_start',
   }],
@@ -80,7 +65,7 @@ const SCRIPTS = {
     runAt: 'document_start',
   }],
 };
-const DEFAULTS = { tenantGuard: true, asBuilt: true, settingInspector: true, settingsExplainer: true, assignmentLens: true, changeSnapshot: true, portalLanguage: true }; // portalLanguage: popup-only, no content script
+const DEFAULTS = { tenantGuard: true, asBuilt: true, settingInspector: true, settingsExplainer: true, oibRecommendations: true, assignmentLens: true, changeSnapshot: true, portalLanguage: true }; // portalLanguage: popup-only, no content script
 
 // UI language of the in-page features: a marker script sets <html data-tenant-compass-lang>, read by shared/i18n-page.js
 // in every world. Each feature script also gets the shared helper and its own dictionary (<feature>/i18n.js).⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
@@ -96,7 +81,7 @@ const withI18n = ({ i18n, ...s }) => i18n === false ? s : ({ ...s, js: [s.world 
 async function apply() {
   const { features, lang } = await chrome.storage.sync.get({ features: DEFAULTS, lang: '' });
   const on = { ...DEFAULTS, ...features };
-  if (on.settingsExplainer) on.settingInspector = false; // superseded, see SCRIPTS.settingsExplainer
+  on.settingsExplainer = on.settingInspector || on.settingsExplainer || on.oibRecommendations; // one card, see SCRIPTS.settingsExplainer
   const ui = LANGS.includes(lang) ? lang : defaultLang();
   const ids = (await chrome.scripting.getRegisteredContentScripts()).map(s => s.id);
   if (ids.length) await chrome.scripting.unregisterContentScripts({ ids });

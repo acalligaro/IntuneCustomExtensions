@@ -1,7 +1,7 @@
 // Feature menu. Main view: active features (chips), Tenant Guard current tab and rules; ⚙ opens the settings (feature toggles, positions).⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 // background.js re-registers content scripts when `features` changes; open tabs need a reload. Strings: shared/i18n.js.
 
-const DEFAULTS = { tenantGuard: true, asBuilt: true, settingInspector: true, settingsExplainer: true, assignmentLens: true, changeSnapshot: true, portalLanguage: true }; // keep in sync with background.js
+const DEFAULTS = { tenantGuard: true, asBuilt: true, settingInspector: true, settingsExplainer: true, oibRecommendations: true, assignmentLens: true, changeSnapshot: true, portalLanguage: true }; // keep in sync with background.js
 const PL_DEFAULT = { lang: 'en', format: 'en-us' };
 let portalLang = { ...PL_DEFAULT };
 const $id = id => document.getElementById(id);
@@ -53,8 +53,7 @@ const ACTIONS = {
 
 function render() {
   applyI18n();
-  // Settings Explainer supersedes Setting Inspector when both are on (background.js injects only one card).
-  const on = Object.keys(DEFAULTS).filter(k => features[k] && !(k === 'settingInspector' && features.settingsExplainer));
+  const on = Object.keys(DEFAULTS).filter(k => features[k]);
   // Compact: one chip per active feature (description as tooltip, full text in ⚙), quick action as an icon inside the chip.
   // Set Tenant Language is its action only (🌐 + target language): its full name is in the tooltip.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
   $id('active-list').replaceChildren(...on.map(k => k === 'portalLanguage'
@@ -68,11 +67,12 @@ function render() {
       $id('reload-btn').hidden = false;
       render();
     } });
-    return el('label', { className: k === 'settingsExplainer' ? 'feature sub' : 'feature' }, box, el('div', {}, el('b', { textContent: t('f.' + k) }), el('span', { textContent: t('f.' + k + '.desc') })));
+    return el('label', { className: k === 'settingsExplainer' || k === 'oibRecommendations' ? 'feature sub' : 'feature' }, box, el('div', {}, el('b', { textContent: t('f.' + k) }), el('span', { textContent: t('f.' + k + '.desc') })));
   }));
   for (const n of document.querySelectorAll('.tg-only')) n.hidden = !features.tenantGuard;
   for (const n of document.querySelectorAll('.pl-only')) n.hidden = !features.portalLanguage;
-  for (const n of document.querySelectorAll('.se-only')) n.hidden = !features.settingsExplainer;
+  // Card close delay: applies to the setting card, whichever of its modules are on.
+  for (const n of document.querySelectorAll('.se-only')) n.hidden = !(features.settingInspector || features.settingsExplainer || features.oibRecommendations);
   for (const b of document.querySelectorAll('[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
 }
 
