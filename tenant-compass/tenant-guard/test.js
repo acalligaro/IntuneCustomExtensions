@@ -55,4 +55,26 @@ assert.deepStrictEqual(mergeRules([], { rules: cur }).customColors, []); // olde
 assert.throws(() => mergeRules(cur, { foo: 1 }));
 assert.throws(() => mergeRules(cur, []));
 
-console.log('tenant-guard: all checks passed');
+// shared/i18n-page-isolated.js must stay a byte-for-byte copy of shared/i18n-page.js (one path per world, see background.js).
+{
+  const fs = require('fs'), p = require('path').join(__dirname, '..', 'shared');
+  assert.strictEqual(fs.readFileSync(p + '/i18n-page-isolated.js', 'utf8'), fs.readFileSync(p + '/i18n-page.js', 'utf8'), 'i18n-page-isolated.js differs from i18n-page.js');
+}
+// No content-script file may be listed for both worlds: Chrome injects a file once per frame, in the first world only.
+{
+  const fs = require('fs'), path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'background.js'), 'utf8').replace(/^importScripts.*$/m, '');
+  let reg;
+  const noop = { addListener() {} };
+  globalThis.chrome = { runtime: { getManifest: () => require('../manifest.json'), onInstalled: noop, onStartup: noop },
+    storage: { onChanged: noop, sync: { get: async d => d } }, action: { setBadgeText() {} },
+    scripting: { getRegisteredContentScripts: async () => [], unregisterContentScripts: async () => {}, registerContentScripts: async w => { reg = w; } } };
+  new Function(src + ';return apply')()().then(() => {
+    const worlds = {};
+    for (const s of reg) for (const f of s.js) (worlds[f] = worlds[f] || new Set()).add(s.world || 'ISOLATED');
+    const both = Object.keys(worlds).filter(f => worlds[f].size > 1);
+    assert.deepStrictEqual(both, [], 'files registered in both worlds: ' + both);
+    assert.ok(!reg.some(s => s.matches.some(m => m.includes('learn.microsoft.com'))), 'nothing injected on learn.microsoft.com');
+    console.log('tenant-guard: all checks passed');
+  }).catch(e => { console.error(e); process.exit(1); });
+}

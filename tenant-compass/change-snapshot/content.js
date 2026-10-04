@@ -3,7 +3,7 @@
 (() => {
   const warn = (...a) => console.warn('[Change Snapshot]', ...a); // errors only
   let L = globalThis.__changeSnapshotLib;
-  // Fallback: if lib.js did not run in this isolated world, load it as a module (web_accessible_resources).
+  // lib.js is only registered for the MAIN hook (one world per file and frame, see background.js): load it as a module here.
   const libReady = L ? Promise.resolve() : import(chrome.runtime.getURL('change-snapshot/lib.js'))
     .then(() => { L = globalThis.__changeSnapshotLib; })
     .catch(err => warn('lib.js introuvable :', err.message));

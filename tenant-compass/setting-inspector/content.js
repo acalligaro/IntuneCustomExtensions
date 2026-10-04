@@ -110,7 +110,7 @@
     .title span:first-child { flex: 1; min-width: 0; }
     .entry + .entry .title { margin-top: -6px; }
     .row { display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; gap: 6px; align-items: center; margin: 3px 0; }
-    .k { color: #605e5c; font-weight: 600; font-size: 11px; }
+    .k { color: #605e5c; font-weight: 600; font-size: 11px; overflow-wrap: anywhere; }
     code { font: 11px/1.4 "Cascadia Code", Consolas, monospace; background: #f3f2f1; color: #323130; padding: 1px 6px; border-radius: 6px;
            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     button { font: inherit; font-size: 11px; font-weight: 600; padding: 1px 8px; border: 0; border-radius: 999px;
@@ -188,12 +188,9 @@
     if (!host.isConnected) document.documentElement.appendChild(host);
     box = h('div', { className: 'box' }, ...entries.slice(0, 2).map(entry));
     root.replaceChildren(h('style', { textContent: CSS }), box);
-    const r = anchor.getBoundingClientRect();
-    const w = box.offsetWidth, ht = box.offsetHeight;
-    const left = r.right + 8 + w <= innerWidth ? r.right + 8 : Math.max(4, Math.min(r.left, innerWidth - w - 4));
-    const top = r.right + 8 + w <= innerWidth ? r.top : r.bottom + 4;
-    box.style.left = left + 'px';
-    box.style.top = Math.max(4, Math.min(top, innerHeight - ht - 4)) + 'px';
+    // Same place as the Settings Explainer card: docked to the right edge of the window, at the hovered row's height.
+    box.style.right = '8px';
+    box.style.top = Math.max(4, Math.min(anchor.getBoundingClientRect().top, innerHeight - box.offsetHeight - 4)) + 'px';
   }
 
   function hideSoon() {
@@ -222,4 +219,10 @@
       }
     }, DEBOUNCE);
   }, true);
+  // The pointer can leave this frame without any mouseover here (into a portal iframe, out of the window) and the
+  // portal can swap the view under a shown card: start the close delay in those cases too.
+  const leave = () => { lastTarget = null; clearTimeout(timer); hideSoon(); };
+  document.addEventListener('mouseout', e => { if (!e.relatedTarget || e.relatedTarget.tagName === 'IFRAME') leave(); }, true);
+  addEventListener('blur', leave);
+  addEventListener('hashchange', leave);
 })();

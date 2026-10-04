@@ -21,8 +21,10 @@
   }
 
   window.__tenantCompassDrag = (el, handle, key) => {
-    // ponytail: position clamped on load only; a later window shrink can leave it partly off-screen until the next drag.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
+    // ponytail: a later window shrink can leave it partly off-screen until the next resize of the element or drag.
     try { const p = JSON.parse(localStorage.getItem(KEY + key)); if (p) place(el, p.x, p.y); } catch {}
+    // A placed panel grows as its content loads (groups, members): keep it on screen, not under the buttons below it.
+    new ResizeObserver(() => { if (el.isConnected && el.style.top) place(el, parseFloat(el.style.left), parseFloat(el.style.top)); }).observe(el);
     handle.style.cursor = 'move';
     handle.style.touchAction = 'none';
     handle.addEventListener('pointerdown', e => {

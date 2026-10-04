@@ -41,7 +41,12 @@ function picker(r, onPick) {
   pal.className = 'pal';
   const pick = c => { sum.style.background = c; onPick(c); d.open = false; };
   for (const [name, c] of PRESETS) pal.append(swatch(c, name, () => pick(c)));
-  for (const c of customColors) pal.append(swatch(c, c, () => pick(c)));
+  // Saved colors on their own row, under the presets (grid of 5 columns, MAX_CUSTOM = 5).
+  customColors.forEach((c, i) => {
+    const b = swatch(c, c, () => pick(c));
+    if (!i) b.style.gridColumnStart = 1;
+    pal.append(b);
+  });
   const more = document.createElement('div');
   more.className = 'more';
   const other = document.createElement(inPopup ? 'div' : 'label');

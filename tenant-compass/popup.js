@@ -1,7 +1,7 @@
 // Feature menu. Main view: active features (chips), Tenant Guard current tab and rules; ⚙ opens the settings (feature toggles, positions).⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 // background.js re-registers content scripts when `features` changes; open tabs need a reload. Strings: shared/i18n.js.
 
-const DEFAULTS = { tenantGuard: true, asBuilt: true, settingInspector: true, assignmentLens: true, changeSnapshot: true, portalLanguage: true }; // keep in sync with background.js
+const DEFAULTS = { tenantGuard: true, asBuilt: true, settingInspector: true, settingsExplainer: true, assignmentLens: true, changeSnapshot: true, portalLanguage: true }; // keep in sync with background.js
 const PL_DEFAULT = { lang: 'en', format: 'en-us' };
 let portalLang = { ...PL_DEFAULT };
 const $id = id => document.getElementById(id);
@@ -53,7 +53,8 @@ const ACTIONS = {
 
 function render() {
   applyI18n();
-  const on = Object.keys(DEFAULTS).filter(k => features[k]);
+  // Settings Explainer supersedes Setting Inspector when both are on (background.js injects only one card).
+  const on = Object.keys(DEFAULTS).filter(k => features[k] && !(k === 'settingInspector' && features.settingsExplainer));
   // Compact: one chip per active feature (description as tooltip, full text in ⚙), quick action as an icon inside the chip.
   // Set Tenant Language is its action only (🌐 + target language): its full name is in the tooltip.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
   $id('active-list').replaceChildren(...on.map(k => k === 'portalLanguage'
@@ -67,10 +68,11 @@ function render() {
       $id('reload-btn').hidden = false;
       render();
     } });
-    return el('label', { className: 'feature' }, box, el('div', {}, el('b', { textContent: t('f.' + k) }), el('span', { textContent: t('f.' + k + '.desc') })));
+    return el('label', { className: k === 'settingsExplainer' ? 'feature sub' : 'feature' }, box, el('div', {}, el('b', { textContent: t('f.' + k) }), el('span', { textContent: t('f.' + k + '.desc') })));
   }));
   for (const n of document.querySelectorAll('.tg-only')) n.hidden = !features.tenantGuard;
   for (const n of document.querySelectorAll('.pl-only')) n.hidden = !features.portalLanguage;
+  for (const n of document.querySelectorAll('.se-only')) n.hidden = !features.settingsExplainer;
   for (const b of document.querySelectorAll('[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
 }
 
@@ -108,8 +110,17 @@ $id('reset-pos').onclick = () =>
 $id('reload-btn').onclick = () =>
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => tab && chrome.tabs.reload(tab.id));
 
-Promise.all([i18nReady, chrome.storage.sync.get({ features: DEFAULTS, portalLang: PL_DEFAULT })]).then(([, r]) => {
+// Settings Explainer: seconds the card stays after the pointer leaves the setting (read live by settings-explainer/content.js).
+const SE_DEFAULT = { hideDelay: 2 };
+$id('se-delay').onchange = e => {
+  const v = Math.min(60, Math.max(0, Number(e.target.value) || 0));
+  e.target.value = v;
+  chrome.storage.sync.set({ explainer: { ...SE_DEFAULT, hideDelay: v } });
+};
+
+Promise.all([i18nReady, chrome.storage.sync.get({ features: DEFAULTS, portalLang: PL_DEFAULT, explainer: SE_DEFAULT })]).then(([, r]) => {
   features = { ...DEFAULTS, ...r.features };
+  $id('se-delay').value = { ...SE_DEFAULT, ...r.explainer }.hideDelay;
   portalLang = { ...PL_DEFAULT, ...r.portalLang };
   renderPortalLang();
   render();

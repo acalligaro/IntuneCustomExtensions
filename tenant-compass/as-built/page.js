@@ -214,7 +214,7 @@
            border-radius: 999px; padding: 10px 18px; font-weight: 600; cursor: pointer; box-shadow: 0 6px 20px rgba(0,120,212,.35);
            transition: transform .15s ease, box-shadow .15s ease; }
     .fab:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0,120,212,.45); }
-    .panel { position: fixed; left: 20px; bottom: 124px; z-index: 2147483000; width: 500px; max-height: 76vh; display: flex; flex-direction: column;
+    .panel { position: fixed; left: 20px; bottom: 124px; z-index: 2147483001; width: 500px; max-height: 76vh; display: flex; flex-direction: column;
              background: #fff; color: #1b1a19; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,.22), 0 0 0 1px rgba(0,0,0,.05);
              animation: pop .18s ease-out; }
     @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.98); } }

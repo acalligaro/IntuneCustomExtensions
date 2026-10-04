@@ -17,8 +17,9 @@
     table { border-collapse: separate; border-spacing: 0 4px; width: 100%; }
     th { text-align: left; font-weight: 600; color: var(--muted); font-size: 11.5px; padding: 0 4px; }
     td { padding: 0 4px; }
-    input[type=text] { width: 100%; padding: 6px 9px; border: 1px solid var(--line); border-radius: 9px; background: #faf9f8; outline: none; transition: border-color .15s, box-shadow .15s; }
-    input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,120,212,.15); background: #fff; }
+    input[type=text], input[type=number] { width: 100%; padding: 6px 9px; border: 1px solid var(--line); border-radius: 9px; background: #faf9f8; outline: none; transition: border-color .15s, box-shadow .15s; }
+    input[type=number] { width: 90px; font: inherit; }
+    input[type=text]:focus, input[type=number]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,120,212,.15); background: #fff; }
     input[type=color] { width: 34px; height: 28px; padding: 0; border: 0; border-radius: 8px; background: none; cursor: pointer; }
     input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
     .match { min-width: 240px; }
@@ -33,7 +34,8 @@
     .pick { position: relative; }
     .pick summary { list-style: none; width: 34px; height: 28px; border-radius: 8px; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
     .pick summary::-webkit-details-marker { display: none; }
-    .pal { position: absolute; right: 0; top: 32px; z-index: 2; display: grid; grid-template-columns: repeat(6, 24px); gap: 6px; padding: 10px; min-width: 200px; background: #fff; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.06); }
+    /* Row 1: the 5 presets, row 2: up to 5 saved colors (options.js starts it on a new row). Width = 5 swatches + 4 gaps + padding. */
+    .pal { position: absolute; right: 0; top: 32px; z-index: 2; display: grid; grid-template-columns: repeat(5, 24px); gap: 6px; padding: 10px; width: 164px; background: #fff; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.06); }
     .pal .more { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; white-space: nowrap; color: var(--muted); font-size: 12px; }
     .pal .more div { display: flex; gap: 6px; align-items: center; }
     .pal .more .cp { display: grid; grid-template-columns: 24px 1fr; gap: 6px; width: 100%; }
@@ -60,6 +62,7 @@
     .feature { display: flex; gap: 10px; align-items: flex-start; padding: 8px; border-radius: 10px; cursor: pointer; transition: background .12s; }
     .feature:hover { background: var(--bg); }
     .feature input { margin-top: 2px; }
+    .feature.sub { margin-left: 26px; }
     .feature span { color: var(--muted); font-size: 12px; display: block; }
     .reload { display: block; width: 100%; margin: 0 0 12px; padding: 10px 14px; font-size: 13px; line-height: 1.35; text-align: center; white-space: normal; }
         .lang { margin-left: auto; display: flex; background: rgba(255,255,255,.15); border-radius: 999px; padding: 2px; }
@@ -109,6 +112,14 @@
       <label class="pick-l"><span class="hint" data-i18n="pl.format"></span><select id="pl-format"></select></label>
     </div>
     <p class="hint" data-i18n="pl.hint"></p>
+  </section>
+
+  <section class="card se-only">
+    <h2 data-i18n="se.title"></h2>
+    <div class="actions">
+      <label class="pick-l"><span class="hint" data-i18n="se.delay"></span><input type="number" id="se-delay" min="0" max="60" step="0.5" inputmode="decimal"></label>
+    </div>
+    <p class="hint" data-i18n="se.delay.hint"></p>
   </section>
 
   <section class="card">
