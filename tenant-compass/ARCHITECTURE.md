@@ -1,25 +1,26 @@
 # Tenant Compass : architecture
 
-Document destiné aux mainteneurs. Il décrit ce que fait réellement le code de `tenant-compass/` (version `0.7.0` du manifeste). Les points non confirmés par la lecture du code sont marqués **à vérifier**.
+Document destiné aux mainteneurs. Il décrit ce que fait réellement le code de `tenant-compass/` (version `0.8.0` du manifeste). Les points non confirmés par la lecture du code sont marqués **à vérifier**.
 
 ---
 
 ## 1. Vue d'ensemble
 
-Tenant Compass est une extension Chrome / Edge (**Manifest V3**, Chrome ≥ 111) qui ajoute six fonctions au portail d'administration Microsoft, chacune activable séparément depuis le menu (popup) :
+Tenant Compass est une extension Chrome / Edge (**Manifest V3**, Chrome ≥ 111) qui ajoute sept fonctions au portail d'administration Microsoft, chacune activable séparément depuis le menu (popup) :
 
 | Fonction | Rôle en une ligne |
 |---|---|
 | **Tenant Guard** | Bandeau et cadre coloré du tenant actif, confirmation avant toute action d'écriture dans un tenant marqué PROD. |
 | **As-Built** | Bouton flottant : export des stratégies Intune en Markdown, Word (.doc) et JSON, plus les scripts (.ps1 / .sh). |
 | **Setting Inspector** | Carte au survol d'un paramètre du catalogue : ID, OMA-URI / clé, licence, version OS min., GPO, liens Learn. |
+| **Settings Explainer** | Option de Setting Inspector, utilisable seule : la même carte, précédée d'une explication (texte rédigé, page CSP Learn lue en direct, valeurs, valeur par défaut). |
 | **Assignment Lens** | Panneau sur une stratégie ou une application : groupes inclus / exclus, nombre de membres, filtres, chevauchements. |
 | **Change Snapshot** | Journal local des modifications de stratégies faites dans le portail : diff avant / après, auteur, n° de ticket, export JSON / CSV. |
 | **Set Tenant Language** | Pastille « 🌐 » du menu : recharge l'onglet du portail dans une langue et un format régional prédéfinis. |
 
 Principes :
 
-- **Aucune inscription d'application dans le tenant.** As-Built et Assignment Lens réutilisent le jeton Graph que le portail utilise déjà (observé en mémoire). Tenant Guard, Setting Inspector, Change Snapshot et Set Tenant Language n'appellent jamais Graph (Change Snapshot observe seulement les appels du portail).
+- **Aucune inscription d'application dans le tenant.** As-Built et Assignment Lens réutilisent le jeton Graph que le portail utilise déjà (observé en mémoire). Tenant Guard, Setting Inspector, Settings Explainer, Change Snapshot et Set Tenant Language n'appellent jamais Graph (Change Snapshot observe seulement les appels du portail). Settings Explainer lit des pages publiques de `learn.microsoft.com` depuis le service worker (section 4.7).
 - **Pas d'étape de build.** Le dossier se charge tel quel comme extension décompressée. Pas de bundler, pas de dépendance npm.
 - **JavaScript vanilla.** Chaque fonction sépare un `lib.js` pur (testable sous Node via `module.exports`) et un script de page qui touche au DOM et au réseau (Set Tenant Language n'a pas de script de page : son `lib.js` est chargé par le popup).
 - **Bilingue FR / EN** : le menu et les textes affichés dans le portail suivent la langue choisie dans le menu (section 5.3).
@@ -35,15 +36,17 @@ tenant-compass/
 ├── background.js                 Service worker : enregistre le marqueur de langue `ui-lang` et les content scripts des fonctions actives (avec leurs dictionnaires), importe les relais
 ├── popup.html                    Menu de l'extension (aussi page d'options ouverte en onglet)
 ├── popup.js                      Pastilles des fonctions actives, paramètres ⚙, bascules générées, Set Tenant Language, « Positions par défaut », bouton de rechargement
-├── README.md                     Guide utilisateur
+├── README.md                     Guide utilisateur (français)
+├── README.en.md                  Guide utilisateur (anglais)
 ├── ARCHITECTURE.md               Ce document
 ├── LICENSE                       Licence propriétaire
 ├── icons/icon{16,32,48,128}.png  Icônes
-├── docs/img/                     Captures du README (menu.png, menu-parametres.png, as-built.png…)
+├── docs/img/readme/{fr,en}/        Captures du README (01 à 12) en français et en anglais, prises dans un tenant de test anonymisé (Contoso)
 ├── shared/
 │   ├── drag.js                   Déplacement à la souris + mémorisation de position (MAIN world)
 │   ├── i18n.js                   Dictionnaires FR / EN du menu (60 clés), t(), applyI18n(), setLang(), i18nReady (popup uniquement)
-│   ├── i18n-page.js              Assistant i18n des scripts de page et du Journal : globalThis.__tenantCompassI18n { lang(), add(), t() }
+│   ├── i18n-page.js              Assistant i18n des scripts MAIN et du Journal : globalThis.__tenantCompassI18n { lang(), add(), t() }
+│   ├── i18n-page-isolated.js     Copie identique, injectée dans le monde ISOLATED (un fichier ne s'injecte qu'une fois par frame)
 │   └── lang/{fr,en}.js           Marqueur enregistré par background.js : pose <html data-tenant-compass-lang>
 ├── tenant-guard/
 │   ├── background.js             Importé par le service worker : état du tenant par onglet, badge
@@ -68,6 +71,15 @@ tenant-compass/
 │   └── data/
 │       ├── settings.json         Base de définitions embarquée (graine : 12 entrées)
 │       └── overlay.json          `_licenseRules` (11 règles) + surcharges par ID (GPO, licence)
+├── settings-explainer/
+│   ├── page-hook.js              Copie de celui de Setting Inspector + champs d'explication (description, options, défaut, risque) ; attribut data-se-def (MAIN world)
+│   ├── content.js                Carte : explication puis détails Setting Inspector, ancrée au bord droit, délai de fermeture réglable (ISOLATED world)
+│   ├── lib.js                    lib.js de Setting Inspector + slim() étendu, explain(), learnTarget(), learnGpo()
+│   ├── csp.js                    Analyse d'une page CSP Learn (marqueurs <!-- X-Section-Begin -->), findDoc(), learnUrl() (service worker)
+│   ├── background.js             Importé par le service worker : lecture des pages Learn, cache 7 jours
+│   ├── i18n.js                   Dictionnaire FR / EN de la carte
+│   ├── test.js                   Tests Node
+│   └── data/explain.json         Explications rédigées (niveau 3), FR / EN, par ID de paramètre
 ├── assignment-lens/
 │   ├── lib.js                    Fonctions pures : familles Graph, parsing d'URL, jeton dans un message, chevauchements
 │   ├── i18n.js                   Dictionnaire FR / EN (39 clés)
@@ -99,13 +111,14 @@ flowchart TD
   P -->|"tabs.update ?l=langue.format<br/>(Set Tenant Language)"| TOP
   P -->|"tabs.create"| J["change-snapshot/journal.html"]
   S -->|"storage.onChanged (features, lang) / onInstalled / onStartup"| BG["background.js<br/>(service worker)"]
-  BG -->|"unregister + registerContentScripts"| REG["Content scripts enregistrés<br/>ui-lang (shared/lang/xx.js) + fonctions<br/>(précédées de i18n-page.js + i18n.js)"]
+  BG -->|"unregister + registerContentScripts"| REG["Content scripts enregistrés<br/>ui-lang (shared/lang/xx.js) + fonctions<br/>(précédées de l'assistant i18n du monde + i18n.js)"]
   S -->|"lang"| J
 
   subgraph TOP["Frame top : intune.microsoft.com / endpoint.microsoft.com (/ portal.azure.com)"]
     TG1["tenant-guard/content.js<br/>ISOLATED, document_idle"]
     AB1["as-built/page.js + drag.js<br/>MAIN, document_start<br/>UI + exports"]
     SI1["setting-inspector page-hook.js MAIN<br/>+ content.js ISOLATED"]
+    SE1["settings-explainer page-hook.js MAIN<br/>+ content.js ISOLATED<br/>(remplace Setting Inspector si actif)"]
     AL1["assignment-lens/page.js + drag.js<br/>MAIN, document_start<br/>panneau (intune uniquement)"]
     CS1["change-snapshot page.js MAIN<br/>+ content.js ISOLATED<br/>cache avant, diff, dialogue"]
   end
@@ -114,6 +127,7 @@ flowchart TD
     TG2["tenant-guard/content.js<br/>blocage des clics PROD"]
     AB2["as-built/page.js<br/>jeton observé + relais GET"]
     SI2["setting-inspector<br/>hook + carte"]
+    SE2["settings-explainer<br/>hook + carte"]
     AL2["assignment-lens/page.js<br/>jeton observé + requêtes GET"]
     CS2["change-snapshot<br/>observation + validation"]
   end
@@ -136,16 +150,20 @@ flowchart TD
   AL2 -->|"GET avec jeton observé"| G
   AL1 -.->|"GET si jeton capté via MessagePort"| G
   SI2 -.->|"observe les réponses du portail, aucun appel"| G
+  SE2 -.->|"observe les réponses du portail, aucun appel"| G
+  SE1 -->|"runtime message learn (page, ancre, OMA-URI)"| BG
+  SE2 -->|"runtime message learn"| BG
+  BG -->|"GET sans cookie, cache 7 j (learn3:lang:page)"| LRN[("learn.microsoft.com<br/>/windows/client-management/mdm/")]
   CS2 -.->|"observe les appels du portail, aucun appel"| G
 ```
 
-`portal.azure.com` reçoit Tenant Guard et Change Snapshot. Les autres portails (`entra`, `security`, `admin`, `purview`, `compliance`, Exchange, Teams) ne reçoivent que Tenant Guard. Le frame top de Change Snapshot passe lui aussi par le relais du service worker pour ses propres observations. Le marqueur de langue `ui-lang` est injecté dans toutes les frames de tous les `host_permissions`, que des fonctions y soient actives ou non. Set Tenant Language n'injecte rien : le popup modifie seulement l'URL de l'onglet actif.
+`portal.azure.com` reçoit Tenant Guard et Change Snapshot. Les autres portails (`entra`, `security`, `admin`, `purview`, `compliance`, Exchange, Teams) ne reçoivent que Tenant Guard. Le frame top de Change Snapshot passe lui aussi par le relais du service worker pour ses propres observations. Le marqueur de langue `ui-lang` est injecté dans toutes les frames de tous les portails (`PORTALS` : les `host_permissions` sans `learn.microsoft.com`), que des fonctions y soient actives ou non. Rien n'est injecté dans `learn.microsoft.com`, que seul le service worker lit pour Settings Explainer. Set Tenant Language n'injecte rien : le popup modifie seulement l'URL de l'onglet actif.
 
 ---
 
 ## 4. Fonctions
 
-Les tableaux « Scripts » ci-dessous donnent les fichiers propres à chaque fonction. À l'enregistrement, `withI18n` (`background.js`) ajoute **en tête** de chaque liste `js` : `shared/i18n-page.js` puis `<fonction>/i18n.js` (dossier déduit du dernier fichier de la liste). Voir section 5.3.
+Les tableaux « Scripts » ci-dessous donnent les fichiers propres à chaque fonction. À l'enregistrement, `withI18n` (`background.js`) ajoute **en tête** de chaque liste `js` : l'assistant (`shared/i18n-page.js` en MAIN, `shared/i18n-page-isolated.js` en ISOLATED) puis `<fonction>/i18n.js` (dossier déduit du dernier fichier de la liste). Les hooks MAIN qui n'affichent rien (`i18n: false` : hooks de Setting Inspector, Settings Explainer, Change Snapshot) n'en reçoivent pas. Voir section 5.3.
 
 ### 4.1 Tenant Guard
 
@@ -155,7 +173,7 @@ Les tableaux « Scripts » ci-dessous donnent les fichiers propres à chaque fon
 
 | ID enregistré | Fichiers | World | run_at | allFrames | matches |
 |---|---|---|---|---|---|
-| `tenant-guard` | `tenant-guard/lib.js`, `tenant-guard/content.js` | ISOLATED (défaut) | `document_idle` | oui | tous les `host_permissions` du manifeste |
+| `tenant-guard` | `tenant-guard/lib.js`, `tenant-guard/content.js` | ISOLATED (défaut) | `document_idle` | oui | tous les portails (`PORTALS` : `host_permissions` sans `learn.microsoft.com`) |
 
 Plus `tenant-guard/background.js`, chargé par `importScripts` dans le service worker **même quand la fonction est désactivée** (ses écouteurs restent alors inactifs faute de messages). `tenant-guard/options.js` tourne dans le popup.
 
@@ -172,7 +190,9 @@ Plus `tenant-guard/background.js`, chargé par `importScripts` dans le service w
 
 **Stockage.** `chrome.storage.sync` : `rules`, `customColors`. `chrome.storage.session` : `t<tabId>`. Lecture seule des noms de clés `localStorage` / `sessionStorage` du portail.
 
-**UI.** Pastille fixe en haut au centre, cadre de 4 px (6 px en PROD), modale de confirmation (focus par défaut sur « Annuler »). Dans le popup : carte « onglet actuel » (signaux détectés, bouton « Référencer ») et tableau des tenants (correspondance, étiquette, couleur, PROD), export JSON, import (ouvre la page d'options en onglet car le sélecteur de fichier ferme le popup ; idem pour le sélecteur de couleur libre).
+**Interface de l'extension.** Les clics dont le chemin passe par un hôte de Tenant Compass (`#tenant-guard`, `#as-built-host`, `#assignment-lens`, `#setting-inspector`, `#settings-explainer`, `#change-snapshot`) ne sont jamais gardés : ces boutons n'écrivent que des données locales (par exemple « Enregistrer » du journal Change Snapshot).
+
+**UI.** Pastille fixe en haut au centre, cadre de 4 px (6 px en PROD), modale de confirmation (focus par défaut sur « Annuler »). Dans le popup : carte « onglet actuel » (signaux détectés, bouton « Référencer ») et tableau des tenants (correspondance, étiquette, couleur, PROD), export JSON, import (ouvre la page d'options en onglet car le sélecteur de fichier ferme le popup ; idem pour le sélecteur de couleur libre). Le choix de couleur (`<details class="pick">`) est une grille de 5 colonnes de 164 px de large : ligne 1, les 5 couleurs par défaut (`PRESETS`) ; ligne 2, les 5 couleurs enregistrées (`customColors`, la première forcée en colonne 1) ; dessous, curseurs teinte / luminosité, code hex, « Autre… » et « Enregistrer ».
 
 **`lib.js`.** `urlSignals`, `storageRealms`, `matchRule`, `isGuarded`, `mergeRules` (import non fiable : filtrage, troncature, couleur hex forcée, fusion par `match`).
 
@@ -261,7 +281,7 @@ sequenceDiagram
 
 **Stockage.** `chrome.storage.local` `live`.
 
-**UI.** Shadow DOM ouvert (hôte `#setting-inspector`), carte de 340 px positionnée à droite de l'élément survolé (ou en dessous), deux entrées max, masquée 400 ms après la sortie. Diagnostics en `console.info` (frame accrochée, chemins Graph vus, survols sans correspondance).
+**UI.** Shadow DOM ouvert (hôte `#setting-inspector`), carte de 340 px toujours contre le bord droit de la fenêtre (comme Settings Explainer), à la hauteur de la ligne survolée, deux entrées max, masquée 400 ms après la sortie. Diagnostics en `console.info` (frame accrochée, chemins Graph vus, survols sans correspondance).
 
 **`lib.js`.** `normalize`, `omaUri`, `lookup`, `licenseFor`, `slim`, `buildDb`, `extractDefs` (fonctions globales du content script, exportées pour Node).
 
@@ -332,7 +352,7 @@ sequenceDiagram
 | ID enregistré | Fichiers | World | run_at | allFrames | matches |
 |---|---|---|---|---|---|
 | `change-snapshot-hook` | `change-snapshot/lib.js`, `change-snapshot/page.js` | MAIN | `document_start` | oui | `CS_MATCHES` : `intune.microsoft.com`, `endpoint.microsoft.com`, `portal.azure.com`, `*.portal.azure.net` |
-| `change-snapshot` | `change-snapshot/lib.js`, `change-snapshot/content.js` | ISOLATED | `document_start` | oui | idem |
+| `change-snapshot` | `change-snapshot/content.js` (`lib.js` chargé par `import()`) | ISOLATED | `document_start` | oui | idem |
 
 Plus `change-snapshot/background.js`, chargé par `importScripts` dans le service worker (comme celui de Tenant Guard, **même quand la fonction est désactivée** : il ne reçoit alors aucun message). `lib.js` est aussi déclaré dans `web_accessible_resources` : si le global `__changeSnapshotLib` est absent du monde isolé, `content.js` le charge par `import(chrome.runtime.getURL('change-snapshot/lib.js'))` (repli) et met les observations en attente de ce chargement.
 
@@ -403,23 +423,54 @@ Le paramètre `l=` est un comportement **observé** du portail, **non documenté
 
 **Tests.** `portal-language/test.js` : `isPortal` (HTTP, hôte suffixé, `chrome://`, URL invalide refusés), conservation de la route `#`, remplacement de `l=`, valeurs inconnues, 24 langues et formats sans doublon.
 
+### 4.7 Settings Explainer
+
+**Rôle.** Option de Setting Inspector, activable seule. Au survol d'un paramètre, la carte de Setting Inspector est précédée d'une section « Explication » :
+
+| Niveau | Contenu | Source |
+|---|---|---|
+| 1 | `description`, `helpText`, options (valeur brute et description), option ou valeur par défaut, `riskLevel` | Définitions Graph captées comme Setting Inspector (`slim()` garde ces champs) |
+| 2 | Description Learn (FR si la page française se lit), notes Microsoft (section « Editable »), valeurs autorisées, plage, GPO et registre | Page CSP Learn lue en direct par le service worker |
+| 3 | Ce que fait le paramètre, effet, pièges, recommandation, sources (badge « Expliqué ») | `settings-explainer/data/explain.json` |
+
+**Activation.** Clé `features.settingsExplainer`. Quand Setting Inspector et Settings Explainer sont tous deux actifs, `apply()` n'enregistre que Settings Explainer : sa carte contient déjà tout Setting Inspector (une seule carte par survol). Le menu affiche la bascule en retrait sous Setting Inspector et masque alors la pastille Setting Inspector.
+
+**Scripts.**
+
+| ID enregistré | Fichiers | World | run_at | allFrames | matches |
+|---|---|---|---|---|---|
+| `settings-explainer-hook` | `settings-explainer/page-hook.js` | MAIN | `document_start` | oui | `intune.microsoft.com`, `endpoint.microsoft.com`, `*.portal.azure.net` |
+| `settings-explainer` | `settings-explainer/lib.js`, `settings-explainer/content.js` | ISOLATED | `document_start` | oui | idem |
+
+**Données.** Base et overlay (licence, GPO) de Setting Inspector (`setting-inspector/data/settings.json` et `overlay.json`), plus `settings-explainer/data/explain.json` fusionné par ID. Définitions captées : `chrome.storage.local` `explainerLive` (pas `live` : les définitions gardent plus de champs).
+
+**Niveau 2, flux.**
+1. `learnTarget()` déduit la page : lien `infoUrls` Learn `…/mdm/<page>#<ancre>`, sinon l'OMA-URI (`./Device/Vendor/MSFT/Policy/Config/<Zone>/<Nom>` donne `policy-csp-<zone>#<nom>` ; `./Device/Vendor/MSFT/<CSP>/…` donne `<csp>-csp`).
+2. `content.js` affiche la carte, puis envoie `{ type: 'learn', slug, anchor, uri, lang }` au service worker. La réponse ne redessine la carte que si aucune autre n'a été affichée entre-temps.
+3. `settings-explainer/background.js` vérifie l'expéditeur et le nom de page (`^[a-z0-9-]+$`), construit lui-même l'URL `https://learn.microsoft.com/<fr-fr|en-us>/windows/client-management/mdm/<page>` (`learnUrl`), la lit sans cookie, l'analyse (`parseCspPage`) et renvoie l'entrée trouvée par OMA-URI, sinon par ancre (`findDoc`). Repli sur `en-us` si la page française ne donne rien.
+4. Cache `chrome.storage.local` `learn3:<lang>:<page>` 7 jours (préfixe changé à chaque évolution de l'analyseur) ; échec (réseau, 429) gardé 1 minute en mémoire.
+
+**UI.** Shadow DOM (hôte `#settings-explainer`), carte de 380 px toujours contre le bord droit de la fenêtre (de l'iframe si le paramètre est dans une iframe), à la hauteur de la ligne survolée. Délai avant fermeture : `chrome.storage.sync` `explainer.hideDelay` (secondes, défaut 2, 0 à 60), réglé dans ⚙ et pris en compte sans rechargement.
+
+**Tests.** `settings-explainer/test.js` : ceux de Setting Inspector, `slim()` étendu, `explain()` (fusion des trois niveaux), analyse d'une page Learn, `learnTarget`, `learnUrl` (refus de toute autre URL), `learnGpo`, cohérence de `explain.json` (ID connus, deux langues, sources Learn).
+
 ---
 
 ## 5. Menu, activation des fonctions et langues
 
 ### 5.1 Menu (popup)
 
-`popup.html` sert de popup (580 px) et de page d'options ouverte en onglet (`options_ui`). Captures : `docs/img/menu.png` (vue principale) et `docs/img/menu-parametres.png` (paramètres ouverts).
+`popup.html` sert de popup (580 px) et de page d'options ouverte en onglet (`options_ui`). Captures : `docs/img/readme/<fr|en>/07-menu.jpg` (vue principale), `08-menu-parametres.jpg` et `09-menu-parametres-suite.jpg` (paramètres ouverts), `10-tenant-guard-couleurs.jpg` (choix de couleur).
 
 - **En-tête** : icône, titre, sélecteur **FR / EN** (`[data-lang]`, `aria-pressed`), bouton **⚙** (`#gear`).
 - **Vue principale** : une ligne de pastilles sans carte (`.strip` > `#active-list.chips`), une par fonction active : nom, description en infobulle (`title`), et une action rapide en icône dans la pastille si `ACTIONS[clé]` existe (`changeSnapshot` → 📋 journal). Set Tenant Language n'apparaît que par son action : bouton « 🌐 <LANGUE> » (section 4.6). Message `#none` si aucune fonction n'est active. Sous les pastilles, le bouton de rechargement `#reload-btn` (voir 5.2). Puis, si Tenant Guard est actif, les cartes « onglet actuel » (`#current` : signaux détectés, bouton « Référencer ») et « tenants référencés » (tableau, export, import, mes couleurs), modifiables sans passer par ⚙.
-- **Paramètres** (⚙ bascule `#settings`, affiché juste sous les pastilles) : bascules des six fonctions avec description (`#toggles`, générées depuis `DEFAULTS`), carte Set Tenant Language (`.pl-only`, deux listes) et carte « Affichage » avec « Positions par défaut ».
+- **Paramètres** (⚙ bascule `#settings`, affiché juste sous les pastilles) : bascules des fonctions avec description (`#toggles`, générées depuis `DEFAULTS` ; Settings Explainer en retrait sous Setting Inspector), carte Settings Explainer (`.se-only`, délai avant fermeture de la carte), carte Set Tenant Language (`.pl-only`, deux listes) et carte « Affichage » avec « Positions par défaut ».
 - Les cartes `.tg-only` (onglet actuel et tenants) sont masquées si Tenant Guard est désactivé ; la carte `.pl-only` si Set Tenant Language l'est.
 - Changer de langue appelle `setLang()`, pose le drapeau `sessionStorage` `langChanged` puis `location.reload()` : les textes de `tenant-guard/options.js` sont construits une seule fois, après `i18nReady` (langue enregistrée connue). Au rechargement, le drapeau est consommé et affiche `#reload-btn`.
 
 ### 5.2 Activation
 
-- Clé `chrome.storage.sync` **`features`** : `{ tenantGuard, asBuilt, settingInspector, assignmentLens, changeSnapshot, portalLanguage }`, booléens.
+- Clé `chrome.storage.sync` **`features`** : `{ tenantGuard, asBuilt, settingInspector, settingsExplainer, assignmentLens, changeSnapshot, portalLanguage }`, booléens. Settings Explainer actif retire Setting Inspector de l'enregistrement (section 4.7).
 - Défauts : **tout à `true`**. L'objet `DEFAULTS` est dupliqué dans `background.js` et `popup.js` (commentaire « keep in sync »). Les valeurs stockées sont fusionnées sur les défauts, donc une nouvelle fonction est active par défaut chez les utilisateurs existants.
 - `popup.js` : chaque case générée écrit `features`, affiche le bouton de rechargement et redessine le menu.
 - `background.js` `apply()` : lit `features` et `lang`, **désenregistre tous** les scripts enregistrés, puis enregistre le marqueur `ui-lang` et ceux des fonctions actives (`SCRIPTS[clé]`, passés par `withI18n`). Une fonction sans entrée `SCRIPTS` (Set Tenant Language) n'enregistre rien. Si Tenant Guard est désactivé, le badge est vidé.
@@ -438,7 +489,7 @@ Le paramètre `l=` est un comportement **observé** du portail, **non documenté
 **Textes dans le portail** (toutes les fonctions).
 
 - `background.js` enregistre le marqueur **`ui-lang`** : `shared/lang/fr.js` ou `shared/lang/en.js` selon `lang`, `document_start`, toutes les frames, tous les `host_permissions`, monde ISOLATED. Il pose `<html data-tenant-compass-lang="fr|en">`, attribut lisible par les deux mondes (les scripts MAIN n'ont pas accès à `chrome.*`).
-- `withI18n` ajoute en tête de chaque script de fonction `shared/i18n-page.js` puis `<fonction>/i18n.js`. Chaque monde (MAIN, ISOLATED) a donc sa propre copie.
+- `withI18n` ajoute en tête de chaque script de fonction l'assistant puis `<fonction>/i18n.js`. **Chrome n'injecte un fichier qu'une fois par frame, quel que soit le monde** : un fichier listé par un script MAIN et par un script ISOLATED ne s'exécute que dans le premier injecté. D'où un chemin par monde pour l'assistant (`shared/i18n-page.js` en MAIN, `shared/i18n-page-isolated.js` en ISOLATED, copies identiques vérifiées par `tenant-guard/test.js`), et `i18n: false` sur les hooks MAIN sans texte, pour que `<fonction>/i18n.js` arrive dans le script ISOLATED qui affiche la carte. Aucun fichier n'est listé dans les deux mondes (vérifié par `tenant-guard/test.js`) : `change-snapshot/lib.js` n'est enregistré que pour le hook MAIN, et `content.js` le charge par `import()` (ressource web accessible). Avant cette règle, `lib.js` pouvait partir dans le monde ISOLATED et `page.js` s'arrêtait sans rien observer.
 - `shared/i18n-page.js` n'expose qu'un global, `globalThis.__tenantCompassI18n` (garde contre le double chargement, pour ne pas heurter les globaux du portail) : `lang()` (lit l'attribut à chaque appel, `fr` par défaut), `add({ fr, en })` (fusionne un dictionnaire), `t(key, vars)` (repli sur `fr` puis sur la clé, variables `{nom}`).
 - Dictionnaires par fonction, clés préfixées par le nom de la fonction : Tenant Guard 8, As-Built 82, Setting Inspector 18, Assignment Lens 39, Change Snapshot 36.
 - Les `lib.js` gardent des défauts français pour les tests Node (As-Built : `T(key, frDefault)`), à garder alignés sur le `fr` de `i18n.js`.
@@ -490,6 +541,7 @@ Toutes les UI injectées vivent dans un Shadow DOM (`:host { all: initial; color
 | Tenant Guard | Non (lit seulement les **noms** de clés MSAL) | — | — | Aucun |
 | As-Built | Oui, en-tête `Authorization` vers Graph | Variable de closure, par frame | Jamais : seul le claim `tid` passe dans `pong` ; les réponses relayées ne contiennent que statut + corps | GET uniquement, URL limitée à `graph.microsoft.com/(beta\|v1.0)/` |
 | Setting Inspector | Non | — | Seules les réponses JSON du portail, à la même fenêtre | Aucun |
+| Settings Explainer | Non | — | Comme Setting Inspector | Aucun vers Graph ; GET sans cookie de pages publiques `learn.microsoft.com/…/mdm/<page>` par le service worker (URL construite par lui) |
 | Assignment Lens | Oui, en-tête `Authorization` ou JWT `aud` Graph vu dans un `postMessage` du shell | Variable de closure, par frame | Jamais : le résultat posté au top est déjà résumé | GET uniquement, vers `graph.microsoft.com/` (nextLink vérifié) |
 | Change Snapshot | Oui, en-tête `Authorization` des écritures observées (page et workers `blob:`), décodé localement sans vérification de signature | Métadonnées de la requête en cours, le temps de la décoder | Jamais : seuls les claims `upn` et `tid` sortent du monde MAIN (rien pour un GET) | Aucun |
 | Set Tenant Language | Non | — | — | Aucun (seulement `chrome.tabs.update` de l'onglet actif) |
@@ -519,11 +571,11 @@ Le jeton n'est jamais écrit dans `chrome.storage`, `localStorage`, la console, 
 | Permission | Pourquoi |
 |---|---|
 | `scripting` | `registerContentScripts` / `unregisterContentScripts` / `getRegisteredContentScripts` (background) ; `executeScript` pour « Positions par défaut » (popup) |
-| `storage` | `features`, `lang`, `portalLang`, `rules`, `customColors` (sync), `live` et `e:<id>` (local), état par onglet (session) |
+| `storage` | `features`, `lang`, `portalLang`, `rules`, `customColors`, `explainer` (sync), `live`, `explainerLive`, `learn3:<lang>:<page>` et `e:<id>` (local), état par onglet (session) |
 | `unlimitedStorage` | Lève le quota de `chrome.storage.local` : journal Change Snapshot (`e:<id>`, avec JSON avant / après, raison donnée par `change-snapshot/README.md`) et cache `live` de Setting Inspector |
-| `host_permissions` (11 origines) | Injection des content scripts (marqueur `ui-lang` et Tenant Guard sur toutes ; Change Snapshot sur Intune / endpoint / `portal.azure.com` / `*.portal.azure.net` ; autres fonctions sur Intune / endpoint / `*.portal.azure.net`) et `executeScript` dans l'onglet actif ; lecture de `tab.url` de l'onglet actif par Set Tenant Language |
+| `host_permissions` (12 origines : 11 portails + `learn.microsoft.com`, lu par Settings Explainer ; rien n'y est injecté, `background.js` filtre cette origine via `PORTALS`) | Injection des content scripts (marqueur `ui-lang` et Tenant Guard sur toutes ; Change Snapshot sur Intune / endpoint / `portal.azure.com` / `*.portal.azure.net` ; autres fonctions sur Intune / endpoint / `*.portal.azure.net`) et `executeScript` dans l'onglet actif ; lecture de `tab.url` de l'onglet actif par Set Tenant Language |
 
-Pas de permission `tabs` ni `activeTab` : `tabs.query`, `tabs.reload`, `tabs.update`, `tabs.create`, `tabs.sendMessage` et l'API `action` n'en ont pas besoin pour l'usage fait ici (`tab.url` est fourni pour les origines couvertes par `host_permissions`). `web_accessible_resources` expose `setting-inspector/data/*.json` aux origines Intune / endpoint / `*.portal.azure.net`, et `change-snapshot/lib.js` à ces origines plus `portal.azure.com` (repli d'import de `content.js`). Une ressource web accessible permet à une page de détecter la présence de l'extension.
+Pas de permission `tabs` ni `activeTab` : `tabs.query`, `tabs.reload`, `tabs.update`, `tabs.create`, `tabs.sendMessage` et l'API `action` n'en ont pas besoin pour l'usage fait ici (`tab.url` est fourni pour les origines couvertes par `host_permissions`). `web_accessible_resources` expose `setting-inspector/data/*.json` et `settings-explainer/data/*.json` aux origines Intune / endpoint / `*.portal.azure.net`, et `change-snapshot/lib.js` à ces origines plus `portal.azure.com` (repli d'import de `content.js`). Une ressource web accessible permet à une page de détecter la présence de l'extension.
 
 ---
 
@@ -531,12 +583,15 @@ Pas de permission `tabs` ni `activeTab` : `tabs.query`, `tabs.reload`, `tabs.upd
 
 | Zone | Clé | Propriétaire | Forme |
 |---|---|---|---|
-| `chrome.storage.sync` | `features` | `popup.js` (écrit), `background.js` (lit) | `{ tenantGuard: bool, asBuilt: bool, settingInspector: bool, assignmentLens: bool, changeSnapshot: bool, portalLanguage: bool }` |
+| `chrome.storage.sync` | `features` | `popup.js` (écrit), `background.js` (lit) | `{ tenantGuard: bool, asBuilt: bool, settingInspector: bool, settingsExplainer: bool, assignmentLens: bool, changeSnapshot: bool, portalLanguage: bool }` |
 | `chrome.storage.sync` | `lang` | `shared/i18n.js` (`setLang` écrit, `i18nReady` lit) ; lu aussi par `background.js` (marqueur `ui-lang`) et `journal.js` | `'fr'` ou `'en'` ; absent → langue du navigateur |
 | `chrome.storage.sync` | `portalLang` | Set Tenant Language (`popup.js`) | `{ lang: string, format: string }`, codes de `LANGUAGES` / `FORMATS` ; défaut `{ lang: 'en', format: 'en-us' }` |
 | `chrome.storage.sync` | `rules` | Tenant Guard (`options.js` écrit, `content.js` lit) | `[{ match: string, label: string, color: '#rrggbb', prod: bool }]` |
 | `chrome.storage.sync` | `customColors` | Tenant Guard (`options.js`) | `['#rrggbb', …]`, 5 max |
 | `chrome.storage.session` | `t<tabId>` | Tenant Guard (`background.js` écrit, `options.js` lit) | `{ signals: string[], signal, label, color, prod: bool, detecting: bool }` ; supprimé à la fermeture de l'onglet |
+| `chrome.storage.sync` | `explainer` | Settings Explainer (`popup.js` écrit, `content.js` lit) | `{ hideDelay: number }` secondes, défaut 2 |
+| `chrome.storage.local` | `explainerLive` | Settings Explainer (`content.js`) | comme `live`, plus `description`, `helpText`, `riskLevel`, `defaultOptionId`, `defaultValue`, `options` |
+| `chrome.storage.local` | `learn3:<fr\|en>:<page>` | Settings Explainer (`background.js`) | `{ at: epoch ms, data: { lang, entries: [{ anchor, uris, description?, notes?, format?, default?, range?, allowed?, gp? }] } }`, 7 jours |
 | `chrome.storage.local` | `live` | Setting Inspector (`content.js`) | `{ [settingDefinitionId]: { id, displayName, baseUri?, offsetUri?, applicability?, infoUrls? } }` |
 | `chrome.storage.local` | `e:<id>` (une clé par entrée) | Change Snapshot (`content.js` écrit, `journal.js` lit et supprime) | `{ id, ts, tenantId, user, policyId, policyType, policyName, method, url, ticket, comment, before, after, diff }` ; pas de purge automatique |
 | `localStorage` (portail) | `tenant-compass:pos:as-built-fab` | `shared/drag.js` pour As-Built | `{ x: number, y: number }` |
@@ -574,11 +629,17 @@ Tirées des commentaires `ponytail:` et du `README.md`.
 | `change-snapshot/README.md` | État « après » reconstruit depuis le corps envoyé, pas relu dans Graph ; un `PUT` qui retire un champ de premier niveau ne le montre pas | — |
 | `change-snapshot/README.md` | Heuristiques testées en unitaire seulement ; diff ADMX bruité (`presentationValues` lus et envoyés de formes différentes) ; clouds nationaux et modifications hors portail non couverts | — |
 | `change-snapshot` | Journal local et modifiable par qui accède au profil : aide à la traçabilité, pas piste d'audit | Le journal d'audit Intune reste la référence |
+| `settings-explainer/csp.js` | Niveau 2 lié à la structure des pages Learn (marqueurs `<!-- X-Section-Begin -->`, tableaux) | Si Microsoft la change, la carte garde les niveaux 1 et 3 ; adapter `parseCspPage` |
+| `settings-explainer/lib.js` | Page Learn déduite des `infoUrls`, sinon de l'OMA-URI (`policy-csp-<zone>`, `<csp>-csp`) : un CSP dont la page porte un autre nom n'a pas de niveau 2 | Table de correspondance si des cas apparaissent |
+| `settings-explainer/content.js` | Dans une iframe du portail, la carte s'ancre au bord droit de l'iframe, pas de la fenêtre | Relayer l'affichage au frame top |
+| `settings-explainer/data/explain.json` | 12 explications rédigées ; à relire quand Microsoft change un comportement | Cibler les paramètres à pièges (50 à 100), pas tout le catalogue |
+| `settings-explainer/*` | `page-hook.js`, `lib.js` et `content.js` dupliquent ceux de Setting Inspector (même base de code étendue) | Fusionner les deux fonctions si Setting Inspector seul n'a plus d'usage |
+| `background.js` (`withI18n`) | Chrome n'injecte un fichier qu'une fois par frame, tous mondes confondus : l'assistant i18n existe en deux copies identiques, et aucun fichier ne doit être listé dans les deux mondes | Tests d'égalité et d'absence de fichier partagé dans `tenant-guard/test.js` |
 | `shared/i18n-page.js` | Langue lue au chargement des scripts : un changement de langue ne s'applique aux onglets du portail qu'après rechargement | — |
 | `*/lib.js` | Défauts français inline (tests Node) dupliqués avec le `fr` des `i18n.js` | Les garder alignés à la main |
 | `portal-language/lib.js` | Paramètre `l=` observé, non documenté sur Microsoft Learn ; persistance après navigation normale **à vérifier** ; listes `LANGUAGES` / `FORMATS` figées | Passer par Paramètres > Langue + région si le paramètre cesse de fonctionner |
 | `popup.js` (Set Tenant Language) | L'onglet est rechargé : modifications non enregistrées perdues | — |
-| `shared/drag.js` | Position bornée au chargement seulement | Re-borner au redimensionnement |
+| `shared/drag.js` | Position bornée au chargement et à chaque changement de taille de l'élément (`ResizeObserver`), pas au redimensionnement de la fenêtre | Écouter `resize` si besoin |
 | `README.md` | Le `.intunewin` n'est pas exportable (aucune URL Graph de téléchargement) | — |
 
 Autres constats à la lecture du code :
@@ -586,7 +647,7 @@ Autres constats à la lecture du code :
 - `change-snapshot/README.md` décrit encore l'extension autonome (installation du dossier `change-snapshot/`, `manifest.json` propre, « aucune permission d'hôte », journal ouvert par clic sur l'icône) : dans Tenant Compass, le journal s'ouvre depuis le menu et l'extension a des `host_permissions`. Les sections fonctionnement, sécurité et limites restent valables.
 - Assignment Lens ne fonctionne pas sur `endpoint.microsoft.com` (`TOP` fixé à `intune.microsoft.com`, absent des `matches`).
 - `data/settings.json` ne contient qu'une graine de 12 paramètres ; la couverture réelle dépend des définitions capturées dans `live`.
-- As-Built, Assignment Lens, Setting Inspector et Change Snapshot enveloppent chacun `window.fetch` / `XMLHttpRequest` dans la même frame (Change Snapshot enveloppe aussi `Worker`). L'ordre d'enveloppement entre scripts enregistrés séparément n'est pas garanti par le code (**à vérifier**) ; chaque wrapper rappelle l'original et ne modifie pas la requête, donc l'ordre ne devrait pas changer le comportement.
+- As-Built, Assignment Lens, Setting Inspector (ou Settings Explainer) et Change Snapshot enveloppent chacun `window.fetch` / `XMLHttpRequest` dans la même frame (Change Snapshot enveloppe aussi `Worker`). L'ordre d'enveloppement entre scripts enregistrés séparément n'est pas garanti par le code (**à vérifier**) ; chaque wrapper rappelle l'original et ne modifie pas la requête, donc l'ordre ne devrait pas changer le comportement.
 
 ---
 
@@ -597,7 +658,7 @@ Autres constats à la lecture du code :
    - le script de page (`page.js` en MAIN world si l'accès au `fetch` ou au JS du portail est nécessaire, `content.js` en ISOLATED world si `chrome.*` est nécessaire) ;
    - `test.js` : vérifications `node:assert` sur `lib.js`, terminées par un `console.log` de succès.
    - `i18n.js` si la fonction affiche du texte dans la page : `__tenantCompassI18n.add({ fr: {…}, en: {…} })`, clés préfixées par la clé de la fonction. Il est chargé automatiquement par `withI18n` ; textes via `__tenantCompassI18n.t(key, vars)`, défaut français inline dans `lib.js` si `lib.js` produit du texte testé sous Node.
-2. **`background.js`** : ajouter une entrée dans `SCRIPTS` avec un `id` unique parmi toutes les fonctions (différent de `ui-lang`), `matches`, `js` (inclure `shared/drag.js` en premier si l'UI est déplaçable ; le **dernier** fichier doit être dans `<ma-fonction>/`, car `withI18n` en déduit le dossier de `i18n.js`), `allFrames`, `runAt`, `world`. Ne pas lister `shared/i18n-page.js` ni `i18n.js` : `withI18n` les ajoute.
+2. **`background.js`** : ajouter une entrée dans `SCRIPTS` avec un `id` unique parmi toutes les fonctions (différent de `ui-lang`), `matches`, `js` (inclure `shared/drag.js` en premier si l'UI est déplaçable ; le **dernier** fichier doit être dans `<ma-fonction>/`, car `withI18n` en déduit le dossier de `i18n.js`), `allFrames`, `runAt`, `world`. Ne pas lister l'assistant ni `i18n.js` : `withI18n` les ajoute. Un script MAIN sans texte prend `i18n: false`. Ne jamais lister un même fichier dans un script MAIN et un script ISOLATED (voir section 5.3).
    Une fonction **uniquement popup** (comme Set Tenant Language) n'a pas d'entrée `SCRIPTS` : `DEFAULTS`, clés i18n du menu et éventuelle entrée `ACTIONS` suffisent ; son `lib.js` est chargé par `popup.html`.
    Un relais côté service worker éventuel va dans `<ma-fonction>/background.js`, ajouté à l'`importScripts` de `background.js`.
 3. **`DEFAULTS`** : ajouter la clé **dans `background.js` et dans `popup.js`** (les deux objets doivent rester identiques). Rien à ajouter dans `popup.html` : la bascule (paramètres ⚙) et la ligne de la vue principale sont générées depuis `DEFAULTS`.
