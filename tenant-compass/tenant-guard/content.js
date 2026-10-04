@@ -17,7 +17,7 @@
     const s = urlSignals(location.href);
     const dir = dirName = document.querySelector('.fxs-avatarmenu-tenant')?.textContent.trim() || null; // Azure/Intune/Entra directory name
     if (dir) s.push(dir);
-    try { realm = storageRealms([...Object.keys(localStorage), ...Object.keys(sessionStorage)])[0] || null; } catch { realm = null; }
+    try { realm = storageRealms([...Object.keys(localStorage), ...Object.keys(sessionStorage)])[0] || shellTenant(sessionStorage, localStorage); } catch { realm = null; }
     if (realm) s.push(realm);
     return [...new Set(s)];
   }

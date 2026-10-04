@@ -31,6 +31,15 @@ function storageRealms(keys) {
   return realms.size === 1 ? [...realms] : [];
 }
 
+// Microsoft 365 shell (admin.cloud.microsoft): MSAL v5 may keep no key in storage, but the shell's session tracking does:
+// sessionStorage "sessionTracking_ActiveAccountIdentifier" names a localStorage entry holding the tenantId.
+function shellTenant(session, local) {
+  try {
+    const id = JSON.parse(local.getItem(session.getItem('sessionTracking_ActiveAccountIdentifier')) || 'null')?.tenantId;
+    return new RegExp(`^${GUID}$`, 'i').test(id) ? id.toLowerCase() : null;
+  } catch { return null; }
+}
+
 // First signal (in priority order) matching any comma-separated term of a rule wins.
 function matchRule(signals, rules) {
   for (const s of signals) {
@@ -79,4 +88,4 @@ function mergeRules(current, data, currentColors = [], max = 5) {
   return { rules: [...byMatch.values()], imported: clean.length, customColors };
 }
 
-if (typeof module !== 'undefined') module.exports = { isAdminConsole, urlSignals, storageRealms, matchRule, learnTenantId, isGuarded, mergeRules };
+if (typeof module !== 'undefined') module.exports = { isAdminConsole, urlSignals, storageRealms, shellTenant, matchRule, learnTenantId, isGuarded, mergeRules };

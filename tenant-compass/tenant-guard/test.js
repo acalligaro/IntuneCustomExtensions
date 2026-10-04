@@ -1,6 +1,6 @@
 // Run: node tenant-guard/test.js⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 const assert = require('node:assert');
-const { isAdminConsole, urlSignals, storageRealms, matchRule, learnTenantId, isGuarded, mergeRules } = require('./lib.js');
+const { isAdminConsole, urlSignals, storageRealms, shellTenant, matchRule, learnTenantId, isGuarded, mergeRules } = require('./lib.js');
 
 const T1 = '11111111-2222-3333-4444-555555555555';
 const T2 = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
@@ -30,6 +30,15 @@ const p1 = `msal.3|oid.${T2}|login.windows.net|idtoken|${CLIENT}|${T1}||`;
 const p2 = `msal.3|oid.${T2}|login.windows.net|accesstoken|${CLIENT}|${T1}|https://admin.cloud.microsoft/.default|`;
 assert.deepStrictEqual(storageRealms([p1, p2, `msal.3|oid.${T2}|login.windows.net|${T1}`, `msal.3|oid.${T2}|login.windows.net|refreshtoken|${CLIENT}|||`]), [T1]);
 assert.deepStrictEqual(storageRealms([p1, `msal.2|oid.${T2}|login.windows.net|accesstoken|${CLIENT}|${T2}|scope|`]), []);
+
+// M365 shell session tracking (admin.cloud.microsoft without MSAL keys)
+{
+  const store = o => ({ getItem: k => (k in o ? o[k] : null) });
+  const local = store({ sessionTracking_abc: JSON.stringify({ upn: 'a@contoso.com', tenantId: T1.toUpperCase() }), sessionTracking_bad: '{' });
+  assert.strictEqual(shellTenant(store({ sessionTracking_ActiveAccountIdentifier: 'sessionTracking_abc' }), local), T1);
+  assert.strictEqual(shellTenant(store({}), local), null);
+  assert.strictEqual(shellTenant(store({ sessionTracking_ActiveAccountIdentifier: 'sessionTracking_bad' }), local), null);
+}
 
 // Rule matching: signal order is priority, terms are comma-separated and case-insensitive
 const rules = [

@@ -224,7 +224,11 @@ i18nReady.then(() => chrome.tabs.query({ active: true, currentWindow: true }, as
     const known = matchRule([s], rules)?.rule;
     btn.textContent = known ? (known.label ? t('tg.knownAs', { label: known.label }) : t('tg.known')) : t('tg.reference');
     btn.disabled = !!known;
-    btn.onclick = () => { add(s); btn.textContent = t('tg.known'); btn.disabled = true; };
+    // Name and tenant ID are the same tenant: one rule holds every signal not referenced yet, so it matches every console.
+    btn.onclick = () => {
+      add(st.signals.filter(x => !matchRule([x], rules)).join(', '));
+      for (const b of ul.querySelectorAll('button')) { b.textContent = t('tg.known'); b.disabled = true; }
+    };
     li.append(code, ' ', btn);
     ul.append(li);
   }
