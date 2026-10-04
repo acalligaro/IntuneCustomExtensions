@@ -26,7 +26,9 @@ Fonction de **Tenant Compass** : activée par défaut, désactivable dans le men
 5. **Consultation** : bouton **Journal** du menu de l'extension → page Journal : filtres stratégie / utilisateur / dates, détail du diff et
    JSON avant/après, export **JSON** et **CSV** (séparateur `;`, UTF-8 avec BOM pour Excel FR), vidage avec confirmation.
 
-Entrée stockée : `{id, ts, tenantId, user, policyId, policyType, policyName, method, url, ticket, comment, before, after, diff}`.
+Entrée stockée : `{id, ts, tenantId, user, policyId, policyType, policyName, method, url, ticket, comment, before, after, diff, env}` (`env` : `prod`, `non-prod` selon Tenant Guard, ou `null`).
+
+Réglages (`chrome.storage.sync`, clé `snapshot`) : `promptProd` (défaut `true`), `promptNonProd` (défaut `false`), `purge` (défaut `true`) et `retentionDays` (défaut `14`, de 1 à 3650) : entrées plus anciennes supprimées au réveil du service worker.
 
 ## Modèle de sécurité
 

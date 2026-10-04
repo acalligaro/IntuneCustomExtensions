@@ -83,9 +83,17 @@
       before: p.before,
       after: p.after,
       diff: L.jsonDiff(p.before || {}, p.after || {}),
+      env: null, // 'prod' / 'non-prod' from Tenant Guard; null when it did not classify the tab
     };
+    const [state, { snapshot }] = await Promise.all([
+      chrome.runtime.sendMessage({ type: 'getState' }).catch(() => null),
+      chrome.storage.sync.get({ snapshot: {} }),
+    ]);
+    if (state && !state.off) entry.env = state.prod ? 'prod' : 'non-prod';
     try { await chrome.storage.local.set({ ['e:' + entry.id]: entry }); } catch (err) { warn('écriture du journal impossible :', err.message); return; } // logged before asking, so a dismiss still leaves a trace
-    showDialog(entry);
+    // Ticket dialog per environment (menu ⚙ settings). Unclassified tab: dialog, as before.
+    const ask = entry.env === 'prod' ? snapshot.promptProd !== false : entry.env === 'non-prod' ? snapshot.promptNonProd === true : true;
+    if (ask) showDialog(entry);
   }
 
   // ---------- non-modal ticket dialog ----------⁣​​‌​‌​​​​​​‌​​‌​‍​⁣

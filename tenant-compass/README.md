@@ -229,6 +229,11 @@ Licence : OpenIntuneBaseline est sous **GPL-3.0**. `oib.json` est une version mo
 
 Trace les modifications de stratégies faites dans le portail. À l'ouverture d'une stratégie, l'extension garde son état ; après un enregistrement réussi, une fenêtre en bas à droite montre la différence et demande un n° de ticket et un commentaire. L'entrée est enregistrée même sans ticket (marquée **sans ticket**). Le journal (📋 dans le menu) se filtre par stratégie, utilisateur et dates, et s'exporte en JSON et CSV (séparateur `;`).
 
+Chaque entrée porte l'environnement détecté par Tenant Guard (**PROD** ou **non-prod**, `?` si l'onglet n'est pas classé). Dans ⚙ Paramètres, carte **Change Snapshot** :
+
+- **Demander un ticket sur les tenants PROD** (activé par défaut) et **sur les tenants non-prod** (désactivé par défaut) : la modification est toujours journalisée, seule la fenêtre de ticket change. Onglet non classé : la fenêtre s'affiche.
+- **Supprimer automatiquement les anciennes entrées** (activé par défaut) et **Durée de conservation (jours)** (14 par défaut, de 1 à 3650) : purge au réveil du service worker, donc à chaque visite du portail. Exportez le journal avant si vous devez le garder.
+
 - Auteur et tenant lus dans le jeton du portail (décodage seulement) ; le jeton n'est jamais enregistré. Les valeurs secrètes sont masquées.
 - Journal local au navigateur (`chrome.storage.local`, clés `e:<id>`) : utile pour la traçabilité, pas une preuve d'audit infalsifiable.
 - Si la stratégie n'a pas été ouverte dans l'onglet avant la modification, la différence part de zéro (signalé).

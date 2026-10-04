@@ -20,6 +20,10 @@
   // For lib.js: French fallback when the key is unknown (t() returns the key itself).
   const tr = (k, fr) => { const s = T(k); return s === k ? fr : s; };
 
+  // After an extension reload, this old script keeps running in tabs opened before it, cut off from the extension:
+  // any chrome.* call then throws "Extension context invalidated". Stay silent until the tab is reloaded.
+  const alive = () => !!chrome.runtime?.id;
+
   // ---------- data ----------
 
   let data;
@@ -57,6 +61,7 @@
 
   window.addEventListener('message', async e => {
     if (e.source !== window || !e.data || e.data.type !== 'settings-explainer:graph') return;
+    if (!alive()) return;
     const defs = extractDefs(e.data.json);
     if (!defs.length) return;
     console.info(`[Settings Explainer] ${defs.length} définition(s) capturée(s)`);
@@ -288,6 +293,7 @@
 
   let timer, lastTarget, misses = 0;
   document.addEventListener('mouseover', e => {
+    if (!alive()) return;
     if (e.target === host) { clearTimeout(hideTimer); clearTimeout(timer); lastTarget = host; return; }
     if (e.target === lastTarget) return;
     lastTarget = e.target;

@@ -115,6 +115,11 @@
 
   <div id="settings" hidden>
   <section class="card">
+    <h2 data-i18n="menu.display"></h2>
+    <div class="actions"><button id="reset-pos" data-i18n="menu.resetPos" data-i18n-title="menu.resetPos.title"></button> <span id="reset-msg" class="hint"></span></div>
+  </section>
+
+  <section class="card">
     <h2 data-i18n="menu.features"></h2>
     <div id="toggles"></div>
   </section>
@@ -142,9 +147,13 @@
     <p class="hint" data-i18n="se.delay.hint"></p>
   </section>
 
-  <section class="card">
-    <h2 data-i18n="menu.display"></h2>
-    <div class="actions"><button id="reset-pos" data-i18n="menu.resetPos" data-i18n-title="menu.resetPos.title"></button> <span id="reset-msg" class="hint"></span></div>
+  <section class="card cs-only">
+    <h2 data-i18n="cs.title"></h2>
+    <label class="feature"><input type="checkbox" id="cs-promptProd"><div><b data-i18n="cs.promptProd"></b></div></label>
+    <label class="feature"><input type="checkbox" id="cs-promptNonProd"><div><b data-i18n="cs.promptNonProd"></b></div></label>
+    <label class="feature"><input type="checkbox" id="cs-purge"><div><b data-i18n="cs.purge"></b></div></label>
+    <div class="actions"><label class="pick-l"><span class="hint" data-i18n="cs.days"></span><input type="number" id="cs-days" min="1" max="3650" step="1" inputmode="numeric"></label></div>
+    <p class="hint" data-i18n="cs.hint"></p>
   </section>
 
   </div>

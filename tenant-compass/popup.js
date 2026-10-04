@@ -75,6 +75,7 @@ function render() {
   for (const n of document.querySelectorAll('.tg-only')) n.hidden = !features.tenantGuard;
   for (const n of document.querySelectorAll('.pl-only')) n.hidden = !features.portalLanguage;
   for (const n of document.querySelectorAll('.pim-only')) n.hidden = !features.pim;
+  for (const n of document.querySelectorAll('.cs-only')) n.hidden = !features.changeSnapshot;
   // Card close delay: applies to the setting card, whichever of its modules are on.
   for (const n of document.querySelectorAll('.se-only')) n.hidden = !(features.settingInspector || features.settingsExplainer || features.oibRecommendations);
   for (const b of document.querySelectorAll('[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
@@ -135,8 +136,25 @@ $id('se-delay').onchange = e => {
   chrome.storage.sync.set({ explainer: { ...SE_DEFAULT, hideDelay: v } });
 };
 
-Promise.all([i18nReady, chrome.storage.sync.get({ features: DEFAULTS, portalLangs: null, portalLang: null, explainer: SE_DEFAULT })]).then(([, r]) => {
+// Change Snapshot: ticket dialog per environment, auto-delete (read by change-snapshot/content.js and background.js).
+const CS_DEFAULT = { promptProd: true, promptNonProd: false, purge: true, retentionDays: 14 };
+let snapshot = { ...CS_DEFAULT };
+for (const k of ['promptProd', 'promptNonProd', 'purge']) $id('cs-' + k).onchange = e => {
+  snapshot = { ...snapshot, [k]: e.target.checked };
+  chrome.storage.sync.set({ snapshot });
+};
+$id('cs-days').onchange = e => {
+  const v = Math.min(3650, Math.max(1, Math.round(Number(e.target.value)) || CS_DEFAULT.retentionDays));
+  e.target.value = v;
+  snapshot = { ...snapshot, retentionDays: v };
+  chrome.storage.sync.set({ snapshot });
+};
+
+Promise.all([i18nReady, chrome.storage.sync.get({ features: DEFAULTS, portalLangs: null, portalLang: null, explainer: SE_DEFAULT, snapshot: CS_DEFAULT })]).then(([, r]) => {
   features = { ...DEFAULTS, ...r.features };
+  snapshot = { ...CS_DEFAULT, ...r.snapshot };
+  for (const k of ['promptProd', 'promptNonProd', 'purge']) $id('cs-' + k).checked = snapshot[k];
+  $id('cs-days').value = snapshot.retentionDays;
   $id('se-delay').value = { ...SE_DEFAULT, ...r.explainer }.hideDelay;
   // Older versions kept one preset (portalLang): it becomes language 2.
   if (Array.isArray(r.portalLangs) && r.portalLangs.length === 2) portalLangs = r.portalLangs;

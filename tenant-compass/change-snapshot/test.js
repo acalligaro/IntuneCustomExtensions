@@ -1,7 +1,7 @@
 // Run: node change-snapshot/test.js⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 const assert = require('node:assert');
 const L = require('./lib.js');
-const { parsePolicyRef, isTrackedRead, stripVolatile, applyRead, applyWrite, jsonDiff, jwtClaims, formatValue, toCsv } = L;
+const { parsePolicyRef, isTrackedRead, stripVolatile, applyRead, applyWrite, jsonDiff, jwtClaims, formatValue, toCsv, isExpired, retentionDays } = L;
 
 const G = 'https://graph.microsoft.com/beta/deviceManagement';
 const ID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
@@ -167,13 +167,24 @@ const csv = toCsv([
     method: 'PATCH', url: 'u1\nu2', ticket: '', comment: '=HYPERLINK("x")', diff: [{ path: 'a', op: 'change', from: 1, to: 2 }] },
 ]);
 const lines = csv.split('\r\n');
-assert.strictEqual(lines[0], 'ts;tenantId;user;policyType;policyId;policyName;method;url;ticket;comment;diff');
+assert.strictEqual(lines[0], 'ts;tenantId;user;policyType;policyId;policyName;method;url;ticket;comment;diff;env');
 assert.strictEqual(csv,
-  'ts;tenantId;user;policyType;policyId;policyName;method;url;ticket;comment;diff\r\n' +
+  'ts;tenantId;user;policyType;policyId;policyName;method;url;ticket;comment;diff;env\r\n' +
   `2026-10-03T10:00:00.000Z;${ID};a@b.c;deviceConfigurations;${ID};"Wi-Fi; ""Siège""";PATCH;"u1\nu2";;"'=HYPERLINK(""x"")";` +
-  '"[{""path"":""a"",""op"":""change"",""from"":1,""to"":2}]"');
-assert.strictEqual(toCsv([]), 'ts;tenantId;user;policyType;policyId;policyName;method;url;ticket;comment;diff');
-assert.ok(toCsv([{ user: null, comment: '-1' }]).endsWith(";;;;;;;;;'-1;"));
+  '"[{""path"":""a"",""op"":""change"",""from"":1,""to"":2}]";');
+assert.strictEqual(toCsv([]), 'ts;tenantId;user;policyType;policyId;policyName;method;url;ticket;comment;diff;env');
+assert.ok(toCsv([{ user: null, comment: '-1' }]).endsWith(";;;;;;;;;'-1;;"));
+
+// ---------- isExpired (14 days) ----------
+const NOW = Date.parse('2026-10-15T12:00:00Z');
+assert.strictEqual(isExpired('2026-10-02T12:00:00Z', NOW), false); // 13 days
+assert.strictEqual(isExpired('2026-10-01T11:59:59Z', NOW), true);  // just over 14 days
+assert.strictEqual(isExpired('garbage', NOW), true);
+assert.strictEqual(isExpired('2026-10-02T12:00:00Z', NOW, 7), true);   // 13 days, 7-day retention
+assert.strictEqual(isExpired('2026-10-02T12:00:00Z', NOW, 30), false);
+assert.strictEqual(retentionDays(0), 14);
+assert.strictEqual(retentionDays('30'), 14); // only integers from the popup
+assert.strictEqual(retentionDays(90), 90);
 
 // OData key syntax used by the Intune portal.
 assert.deepStrictEqual(L.parsePolicyRef("https://graph.microsoft.com/beta/deviceManagement/configurationPolicies('abc-1')"), { type: 'configurationPolicies', id: 'abc-1', sub: '' });

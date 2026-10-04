@@ -205,7 +205,7 @@
     return s.length > max ? s.slice(0, max) + '…' : s;
   }
 
-  const CSV_COLS = ['ts', 'tenantId', 'user', 'policyType', 'policyId', 'policyName', 'method', 'url', 'ticket', 'comment', 'diff'];
+  const CSV_COLS = ['ts', 'tenantId', 'user', 'policyType', 'policyId', 'policyName', 'method', 'url', 'ticket', 'comment', 'diff', 'env'];
 
   function csvCell(v) {
     let s = v == null ? '' : typeof v === 'string' ? v : JSON.stringify(v);
@@ -218,7 +218,12 @@
     return [CSV_COLS, ...entries.map(e => CSV_COLS.map(c => e[c]))].map(r => r.map(csvCell).join(';')).join('\r\n');
   }
 
-  const api = { parsePolicyRef, expandBatch, isTrackedRead, stripVolatile, applyRead, applyWrite, jsonDiff, jwtClaims, formatValue, toCsv };
+  // Auto-delete: entries older than `days` (setting snapshot.retentionDays, default 14) are removed when the journal is purged.
+  const RETENTION_DAYS = 14;
+  const retentionDays = v => Number.isInteger(v) && v >= 1 && v <= 3650 ? v : RETENTION_DAYS;
+  const isExpired = (ts, now = Date.now(), days = RETENTION_DAYS) => !(now - Date.parse(ts) < retentionDays(days) * 864e5); // unreadable ts: expired too
+
+  const api = { RETENTION_DAYS, retentionDays, isExpired, parsePolicyRef, expandBatch, isTrackedRead, stripVolatile, applyRead, applyWrite, jsonDiff, jwtClaims, formatValue, toCsv };
   if (typeof module === 'object' && module && typeof module.exports === 'object') module.exports = api; // node (test.js)
   globalThis.__changeSnapshotLib = api; // always: a stray `module` global must not hide the lib from the page
 })();

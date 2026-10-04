@@ -31,7 +31,7 @@ function detail(e) {
     el('td', { textContent: d.path || T('changeSnapshot.root') }),
     el('td', { textContent: d.op === 'add' ? '' : L.formatValue(d.from, 2000) }),
     el('td', { textContent: d.op === 'remove' ? '' : L.formatValue(d.to, 2000) }))));
-  return el('td', { colSpan: 9 },
+  return el('td', { colSpan: 10 },
     el('div', { className: 'hint', textContent: `${e.method} · ${e.url}` }),
     e.diff.length ? diff : el('p', { textContent: T('changeSnapshot.noDiff') }),
     e.before ? '' : el('p', { className: 'hint', textContent: T('changeSnapshot.journal.noBefore') }),
@@ -48,6 +48,7 @@ function render() {
       el('td', { textContent: new Date(e.ts).toLocaleString(__tenantCompassI18n.lang() === 'en' ? 'en-US' : 'fr-FR') }),
       el('td', { textContent: e.user || '?' }),
       el('td', { textContent: e.tenantId || '?' }),
+      el('td', { className: e.env === 'prod' ? 'prod' : '', textContent: e.env ? T('changeSnapshot.env.' + e.env) : '?' }),
       el('td', { textContent: e.policyType }),
       el('td', { textContent: e.policyName || e.policyId, title: e.policyId }),
       e.ticket ? el('td', { textContent: e.ticket }) : el('td', { className: 'noticket', textContent: T('changeSnapshot.journal.noTicket') }),

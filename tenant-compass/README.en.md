@@ -227,6 +227,11 @@ License: OpenIntuneBaseline is under **GPL-3.0**. `oib.json` is a modified versi
 
 Tracks policy changes made in the portal. When a policy is opened, the extension keeps its state; after a successful save, a window at the bottom right shows the diff and asks for a ticket number and a comment. The entry is saved even without a ticket (marked **no ticket**). The log (📋 in the menu) can be filtered by policy, user and date, and exported to JSON and CSV (`;` separator).
 
+Each entry carries the environment detected by Tenant Guard (**PROD** or **non-prod**, `?` when the tab is not classified). In ⚙ Settings, **Change Snapshot** card:
+
+- **Ask for a ticket on PROD tenants** (on by default) and **on non-prod tenants** (off by default): the change is always logged, only the ticket window changes. Unclassified tab: the window shows.
+- **Delete old entries automatically** (on by default) and **Retention (days)** (14 by default, 1 to 3650): purge when the service worker wakes up, so on every portal visit. Export the log first if you need to keep it.
+
 - Author and tenant read from the portal token (decoding only); the token is never stored. Secret values are masked.
 - Log local to the browser (`chrome.storage.local`, keys `e:<id>`): useful for traceability, not tamper-proof audit evidence.
 - If the policy was not opened in the tab before the change, the diff starts from an empty state (flagged).

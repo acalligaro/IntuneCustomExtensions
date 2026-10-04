@@ -23,6 +23,7 @@
   }
 
   function detect() {
+    if (!chrome.runtime?.id) return; // extension reloaded: this old script is cut off until the tab reloads
     if (!isAdminConsole(location.href)) { // SharePoint user site: no banner, no guard
       if (state?.off) return;
       state = { off: true, signals: [], prod: false, color: '#605e5c' };

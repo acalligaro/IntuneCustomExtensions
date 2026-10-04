@@ -2,16 +2,17 @@
 importScripts('tenant-guard/background.js', 'change-snapshot/background.js', 'settings-explainer/csp.js', 'settings-explainer/background.js', 'pim/lib.js');
 
 // PIM "Active" button (popup): open My roles, then select the Active assignments tab once the page has loaded.
+// The portal often bounces through login.microsoftonline.com (SSO) before the blade shows, so every portal load of the tab
+// in the first minute gets the script, not only the first one. All frames: the blade can render in a *.portal.azure.net iframe.
 chrome.runtime.onMessage.addListener(msg => {
   if (msg.type !== 'pimActive') return;
   chrome.tabs.create({ url: msg.url }).then(({ id }) => {
-    const done = (tabId, info) => {
-      if (tabId !== id || info.status !== 'complete') return;
-      chrome.tabs.onUpdated.removeListener(done);
-      // Fails on the sign-in page (no host permission): the user then picks the tab, nothing else breaks.
-      chrome.scripting.executeScript({ target: { tabId: id }, func: Pim.selectActiveTab }).catch(() => {});
+    const done = (tabId, info, tab) => {
+      if (tabId !== id || info.status !== 'complete' || !tab.url?.startsWith('https://portal.azure.com/')) return;
+      chrome.scripting.executeScript({ target: { tabId: id, allFrames: true }, func: Pim.selectActiveTab }).catch(() => {});
     };
     chrome.tabs.onUpdated.addListener(done);
+    setTimeout(() => chrome.tabs.onUpdated.removeListener(done), 60000); // ponytail: lost if the service worker sleeps first; the user then picks the tab
   });
 });
 
