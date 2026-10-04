@@ -71,6 +71,16 @@
       type: raw.isBuiltIn ? T('asBuilt.type.roleBuiltIn', 'Rôle Intune (intégré)') : T('asBuilt.type.role', 'Rôle Intune (personnalisé)') };
     if (kind === 'tag') return { ...base, name, type: T('asBuilt.type.tag', "Balise d'étendue"), platform: '' };
     if (kind === 'mdm') return { ...base, name, type: T('asBuilt.type.mdm', 'Inscription automatique MDM (Entra)'), platform: 'Windows' };
+    if (kind === 'mam') return { ...base, name, type: T('asBuilt.type.mam', 'Inscription automatique MAM (Entra)'), platform: 'Windows' };
+    // Entra console
+    if (kind === 'ca') return { ...base, name, modified: raw.modifiedDateTime || raw.createdDateTime || '', platform: '',
+      type: T('asBuilt.type.ca', 'Accès conditionnel') + ` (${caState(raw.state)})` };
+    if (kind === 'loc') return { ...base, name, modified: raw.modifiedDateTime || '', platform: '',
+      type: odataName(raw) === 'countryNamedLocation' ? T('asBuilt.type.locCountry', 'Emplacement nommé (pays)') : T('asBuilt.type.locIp', 'Emplacement nommé (IP)') };
+    if (kind === 'auths') return { ...base, name, modified: raw.modifiedDateTime || '', platform: '',
+      type: raw.policyType === 'builtIn' ? T('asBuilt.type.authsBuiltIn', "Niveau d'authentification (intégré)") : T('asBuilt.type.auths', "Niveau d'authentification (personnalisé)") };
+    if (kind === 'authm') return { ...base, name: name || raw.id, platform: '',
+      type: T('asBuilt.type.authm', "Méthode d'authentification") + (raw.state ? ` (${raw.state === 'enabled' ? T('asBuilt.ca.enabled', 'Activée') : T('asBuilt.ca.disabled', 'Désactivée')})` : '') };
     if (kind === 'sc') {
       const tpl = raw.templateReference?.templateDisplayName;
       return { ...base, name: raw.name, type: tpl ? T('asBuilt.type.scTpl', 'Catalogue de paramètres (modèle {tpl})', { tpl }) : T('asBuilt.type.sc', 'Catalogue de paramètres'),
@@ -241,8 +251,9 @@
   const meta = (p, x) => [[x.name, p.name], [x.type, p.type], [x.platform, p.platform], ...(p.license ? [[x.license, p.license]] : []), [x.description, p.description], [x.modified, fmtDate(p.modified)]];
   const param = r => (r.path ? `${r.path} > ${r.name}` : r.name);
 
-  function toMarkdown(policies) {
+  function toMarkdown(policies, title) {
     const x = docText();
+    if (title) x.title = title;
     const out = [`# ${x.title}`, ''];
     const table = (head, rows) => {
       out.push(`| ${head.join(' | ')} |`, `| ${head.map(() => '---').join(' | ')} |`);
@@ -263,8 +274,9 @@
   }
 
   // Word-compatible HTML (saved as .doc): h1-h3 map to Word's Heading styles.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
-  function toWordHtml(policies) {
+  function toWordHtml(policies, title) {
     const e = htmlEscape, x = docText();
+    if (title) x.title = title;
     const cell = (tag, v) => `<${tag}>${e(v).replace(/\r?\n/g, '<br>')}</${tag}>`;
     const table = (head, rows) => `<table><tr>${head.map(h => cell('th', h)).join('')}</tr>${rows.map(r => `<tr>${r.map(v => cell('td', v)).join('')}</tr>`).join('')}</table>`;
     const body = policies.map(p => [
@@ -305,8 +317,27 @@ ${body}
     return /^[0-9a-f-]{36}$/i.test(tid || '') ? tid : '';
   }
 
-  // The portal also sends Graph tokens of other apps (no Intune scope): keep only one that can read Intune objects.
+  // The portal also sends Graph tokens of other apps: keep only one that can read the console's objects.
   const isIntuneToken = token => /\bDeviceManagement(Configuration|Apps|ServiceConfig|ManagedDevices|RBAC)\.Read/.test(jwtClaims(token).scp || '');
+  const isEntraToken = token => /(^|\s)Policy\.Read\.All(\s|$)/.test(jwtClaims(token).scp || ''); // tested 2026-10-04: Entra portal token
+  // Console(s) a Graph token can serve: 'intune', 'entra'. Expired or other audience: none.
+  function tokenKinds(token, now = Date.now()) {
+    const c = jwtClaims(token);
+    if (!/^https:\/\/graph\.microsoft\.com\/?$/.test(c.aud || '') || !(c.exp * 1000 > now)) return [];
+    return [isIntuneToken(token) && 'intune', isEntraToken(token) && 'entra'].filter(Boolean);
+  }
+
+  // JWT strings in a message (the shell hands tokens to its extension Web Worker over MessagePort), at most 6 levels deep.
+  function jwtsIn(data) {
+    const out = [];
+    let budget = 2000; // ponytail: caps the walk on big data messages; tokens sit near the top of token replies
+    (function walk(v, d) {
+      if (d > 6 || v == null || --budget < 0) return;
+      if (typeof v === 'string') { const m = /^(?:Bearer\s+)?(eyJ[\w-]+\.eyJ[\w-]+\.[\w-]+)$/.exec(v); if (m) out.push(m[1]); return; }
+      if (typeof v === 'object' && !ArrayBuffer.isView(v) && !(v instanceof ArrayBuffer)) for (const k in v) walk(v[k], d + 1);
+    })(data, 0);
+    return out;
+  }
 
   // Deep copy with secret values masked: Settings Catalog secret values and encrypted OMA-URI values.
   function maskSecrets(x) {
@@ -321,7 +352,8 @@ ${body}
     app: 'mobileApp', ps: 'deviceManagementScript', sh: 'deviceShellScript', rem: 'deviceHealthScript',
     ap: 'windowsAutopilotDeploymentProfile', apdev: 'windowsAutopilotDeviceIdentities', enr: 'deviceEnrollmentConfiguration',
     dep: 'depEnrollmentProfile', android: 'androidDeviceOwnerEnrollmentProfile', brand: 'intuneBrandingProfile',
-    role: 'roleDefinition', tag: 'roleScopeTag', mdm: 'mobileDeviceManagementPolicy' };
+    role: 'roleDefinition', tag: 'roleScopeTag', mdm: 'mobileDeviceManagementPolicy', mam: 'mobileAppManagementPolicy',
+    ca: 'conditionalAccessPolicy', loc: 'namedLocation', auths: 'authenticationStrengthPolicy', authm: 'authenticationMethodConfiguration' };
 
   // ---------- script files ----------
 
@@ -379,6 +411,69 @@ ${body}
         });
       }),
     };
+  }
+
+  // ---------- Entra: Conditional Access, authentication methods ----------
+
+  const caState = s => ({ enabled: T('asBuilt.ca.enabled', 'Activée'), disabled: T('asBuilt.ca.disabled', 'Désactivée'),
+    enabledForReportingButNotEnforced: T('asBuilt.ca.report', 'Rapport seul') })[s] || s || '';
+
+  // Keyword values of Conditional Access and authentication method targets, shown in words.
+  const CA_WORDS = () => ({ All: T('asBuilt.ca.all', 'Tous'), None: T('asBuilt.ca.none', 'Aucun'),
+    GuestsOrExternalUsers: T('asBuilt.ca.guests', 'Invités ou utilisateurs externes'), Office365: 'Office 365',
+    MicrosoftAdminPortals: T('asBuilt.ca.adminPortals', "Portails d'administration Microsoft"),
+    AllTrusted: T('asBuilt.ca.allTrusted', 'Tous les emplacements approuvés'), all_users: T('asBuilt.target.allUsers', 'Tous les utilisateurs') });
+
+  const GUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const pick = (o, path) => path.reduce((x, k) => (x == null ? x : x[k]), o) || [];
+
+  // Ids to resolve in a policy, by lookup: directory objects (users, groups, roles), apps (appId), named locations.
+  // kind 'ca' (Conditional Access) or 'authm' (authentication method configuration: includeTargets / excludeTargets).
+  function caIds(kind, p) {
+    const guids = list => (Array.isArray(list) ? list : []).filter(v => GUID_RE.test(v));
+    if (kind === 'authm') return { dir: guids([...(p.includeTargets || []), ...(p.excludeTargets || [])].map(t => t.id)), apps: [], locations: [] };
+    const u = ['includeUsers', 'excludeUsers', 'includeGroups', 'excludeGroups', 'includeRoles', 'excludeRoles'];
+    return {
+      dir: guids(u.flatMap(k => pick(p, ['conditions', 'users', k]))),
+      apps: guids(['includeApplications', 'excludeApplications'].flatMap(k => pick(p, ['conditions', 'applications', k]))),
+      locations: guids(['includeLocations', 'excludeLocations'].flatMap(k => pick(p, ['conditions', 'locations', k]))),
+    };
+  }
+
+  // Deep copy where every string that is a known id or keyword is replaced by its name.
+  function withNames(x, names) {
+    const words = CA_WORDS();
+    const walk = v => Array.isArray(v) ? v.map(walk) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, y]) => [k, walk(y)]))
+      : typeof v === 'string' ? names[v] || names[v.toLowerCase()] || words[v] || v : v;
+    return walk(x);
+  }
+
+  // Who a Conditional Access policy or an authentication method targets, as assignment rows (Include / Exclude).
+  function caAssignmentRows(kind, policy, names = {}) {
+    const n = v => (GUID_RE.test(v) && names[v.toLowerCase()]) || CA_WORDS()[v] || v;
+    const inc = T('asBuilt.mode.include', 'Inclure'), exc = T('asBuilt.mode.exclude', 'Exclure');
+    if (kind === 'authm') return [...(policy.includeTargets || []).map(t => ({ group: n(t.id), mode: inc, filter: '' })),
+      ...(policy.excludeTargets || []).map(t => ({ group: n(t.id), mode: exc, filter: '' }))];
+    const u = policy.conditions?.users || {};
+    const of = (list, label) => (list || []).map(v => label ? `${n(v)} (${label})` : n(v));
+    const role = T('asBuilt.ca.role', 'rôle');
+    return [...of(u.includeUsers), ...of(u.includeGroups), ...of(u.includeRoles, role)].map(group => ({ group, mode: inc, filter: '' }))
+      .concat([...of(u.excludeUsers), ...of(u.excludeGroups), ...of(u.excludeRoles, role)].map(group => ({ group, mode: exc, filter: '' })));
+  }
+
+  // Conditional Access policy as readable rows: state, then conditions, grant and session controls (keys humanised).
+  // Users, groups and roles are in the assignments table (caAssignmentRows), not repeated here.
+  function caRows(policy, names = {}) {
+    const p = withNames(policy, names);
+    if (p.conditions) delete p.conditions.users;
+    const strength = p.grantControls?.authenticationStrength;
+    if (strength && typeof strength === 'object') p.grantControls.authenticationStrength = strength.displayName || strength.id; // the whole policy is a separate item
+    return [
+      { path: '', name: T('asBuilt.ca.state', 'État'), value: caState(policy.state) },
+      ...propertyRows(p.conditions, T('asBuilt.ca.conditions', 'Conditions')),
+      ...propertyRows(p.grantControls, T('asBuilt.ca.grant', "Contrôles d'octroi")),
+      ...propertyRows(p.sessionControls, T('asBuilt.ca.session', 'Contrôles de session')),
+    ];
   }
 
   // ---------- Autopilot devices, RBAC, MDM auto-enrollment ----------
@@ -452,7 +547,7 @@ ${body}
   // "Windows, macOS" -> ['Windows', 'macOS'] (policySummary joins multi-platform policies with ", ").⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
   const platformsOf = p => String(p.platform || '').split(',').map(s => s.trim()).filter(Boolean);
 
-  const api = { isIntuneToken, guidsIn, orderItems, IMAGE_KEYS, autopilotRows, autopilotCsv, roleAssignmentRows, mdmAssignmentRows, scriptFiles, fileName, platformsOf, jwtTid, maskSecrets, toJson, htmlEscape, mdEscapeCell, fmtDate, policySummary, categoryPath, settingRows, propertyRows, admxRows, assignmentRows, toMarkdown, toWordHtml };
+  const api = { caAssignmentRows, caState, isEntraToken, tokenKinds, jwtsIn, caIds, withNames, caRows, isIntuneToken, guidsIn, orderItems, IMAGE_KEYS, autopilotRows, autopilotCsv, roleAssignmentRows, mdmAssignmentRows, scriptFiles, fileName, platformsOf, jwtTid, maskSecrets, toJson, htmlEscape, mdEscapeCell, fmtDate, policySummary, categoryPath, settingRows, propertyRows, admxRows, assignmentRows, toMarkdown, toWordHtml };
   if (typeof module !== 'undefined') module.exports = api;
   else globalThis.AsBuiltLib = api;
 })();

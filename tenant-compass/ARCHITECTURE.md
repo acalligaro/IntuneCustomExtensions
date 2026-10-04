@@ -1,6 +1,6 @@
 # Tenant Compass : architecture
 
-Document destiné aux mainteneurs. Il décrit ce que fait réellement le code de `tenant-compass/` (version `0.10.0` du manifeste). Les points non confirmés par la lecture du code sont marqués **à vérifier**.
+Document destiné aux mainteneurs. Il décrit ce que fait réellement le code de `tenant-compass/` (version `0.11.0` du manifeste). Les points non confirmés par la lecture du code sont marqués **à vérifier**.
 
 ---
 
@@ -214,11 +214,13 @@ Plus `tenant-guard/background.js`, chargé par `importScripts` dans le service w
 
 | ID enregistré | Fichiers | World | run_at | allFrames | matches |
 |---|---|---|---|---|---|
-| `as-built` | `shared/drag.js`, `as-built/lib.js`, `as-built/page.js` | MAIN | `document_start` | oui | `intune.microsoft.com`, `endpoint.microsoft.com`, `*.portal.azure.net` |
+| `as-built` | `shared/drag.js`, `as-built/lib.js`, `as-built/page.js` | MAIN | `document_start` | oui | `intune.microsoft.com`, `endpoint.microsoft.com`, `entra.microsoft.com`, `portal.azure.com`, `*.portal.azure.net` |
 
 **Flux.**
 
-1. Toutes les frames : `window.fetch` et `XMLHttpRequest.prototype.open` / `setRequestHeader` sont enveloppés. Un en-tête `Authorization: Bearer …` envoyé à `https://graph.microsoft.com` est gardé dans la variable `token` de la closure, **seulement si son claim `scp` contient une autorisation Intune** (`DeviceManagement*.Read*`, `isIntuneToken`) : le portail envoie aussi des jetons Graph d'autres applications, qui répondraient 403 partout.
+1. Toutes les frames : `window.fetch` et `XMLHttpRequest.prototype.open` / `setRequestHeader` sont enveloppés. Un en-tête `Authorization: Bearer …` envoyé à `https://graph.microsoft.com` est gardé dans `tokens` (closure), **un par console** selon son claim `scp` (`tokenKinds`) : `intune` s'il porte une autorisation `DeviceManagement*.Read*`, `entra` s'il porte `Policy.Read.All` (jeton du portail Entra, testé le 2026-10-04 ; absent du jeton du portail Intune). Les jetons Graph d'autres applications sont ignorés (403 partout). Frame top : les jetons passés par le shell à son Web Worker (`MessagePort` / `Worker.postMessage`, `jwtsIn`) sont lus au passage, car les blades Entra tournent dans ce worker.
+
+**Console** (frame top) : `intune` sur `intune` / `endpoint.microsoft.com`, `entra` sur `entra.microsoft.com` et `portal.azure.com`. Elle choisit la liste (`INTUNE_SOURCES` / `ENTRA_SOURCES`), le jeton (champ `kind` des messages `ping` / `get` vers les iframes), le titre du panneau et du document, et le nom de fichier (`as-built-<console>-<date>`). Sur Entra, le filtre OS et l'option scripts sont masqués.
 2. Iframes (worker) : écoute `message`. Accepte seulement si `e.source === window.top`, `e.origin` ∈ {`https://intune.microsoft.com`, `https://endpoint.microsoft.com`} et un jeton est présent. `ping` → `pong` avec le claim `tid` (pas le jeton). `get` → `graphGet(url)` → `res` (statut + corps JSON).
 3. Frame top (seulement sur les deux origines UI) : si elle a elle-même un jeton, elle appelle Graph directement ; sinon `findWorker()` envoie `ping` à toutes les frames (`'*'`, message sans donnée), attend 2 s le premier `pong` dont l'origine correspond à `WORKER_ORIGIN`, puis relaie chaque requête (délai 60 s). Un 401 oublie le worker.
 4. `graphGet` refuse toute URL hors `^https://graph.microsoft.com/(beta|v1.0)/`, force `method: 'GET'` et `credentials: 'omit'`.
@@ -227,10 +229,12 @@ Endpoints Graph (beta) appelés :
 
 | Usage | Endpoint |
 |---|---|
-| Liste | `deviceManagement/configurationPolicies`, `deviceConfigurations`, `deviceCompliancePolicies`, `groupPolicyConfigurations`, `deviceManagementScripts`, `deviceShellScripts`, `deviceHealthScripts`, `windowsAutopilotDeploymentProfiles`, `deviceEnrollmentConfigurations`, `androidDeviceOwnerEnrollmentProfiles`, `intuneBrandingProfiles`, `roleDefinitions`, `roleScopeTags` ; `depOnboardingSettings` puis `depOnboardingSettings/{id}/enrollmentProfiles` ; `deviceAppManagement/mobileApps` ; `policies/mobileDeviceManagementPolicies?$expand=includedGroups` (demande `Policy.Read.All`, absent du jeton du portail Intune : source en erreur, message dédié). Appareils Autopilot : un seul élément, sans appel à la liste (l'endpoint répond 500 à `$select` / `$top`) |
+| Liste Intune | `deviceManagement/configurationPolicies`, `deviceConfigurations`, `deviceCompliancePolicies`, `groupPolicyConfigurations`, `deviceManagementScripts`, `deviceShellScripts`, `deviceHealthScripts`, `windowsAutopilotDeploymentProfiles`, `deviceEnrollmentConfigurations`, `androidDeviceOwnerEnrollmentProfiles`, `intuneBrandingProfiles`, `roleDefinitions`, `roleScopeTags` ; `depOnboardingSettings` puis `depOnboardingSettings/{id}/enrollmentProfiles` ; `deviceAppManagement/mobileApps`. Appareils Autopilot : un seul élément, sans appel à la liste (l'endpoint répond 500 à `$select` / `$top`) |
 | Détail Autopilot (appareils) | `windowsAutopilotDeviceIdentities` (tous) : lignes du document + fichier `autopilot-devices-<date>.csv`. Pas de hachage matériel : Graph ne l'expose pas |
 | Détail rôle | `roleDefinitions/{id}`, `.../roleAssignments`, `roleAssignments/{id}` (membres, étendue, balises), `roleScopeTags` |
-| Détail MDM | `policies/mobileDeviceManagementPolicies/{id}?$expand=includedGroups` (portée affichée comme affectations) |
+| Détail MDM / MAM (Entra) | `policies/mobileDeviceManagementPolicies/{id}` ou `mobileAppManagementPolicies/{id}`, `?$expand=includedGroups` (portée affichée comme affectations) |
+| Liste Entra | `identity/conditionalAccess/policies`, `identity/conditionalAccess/namedLocations`, `policies/authenticationStrengthPolicies`, `policies/authenticationMethodsPolicy` (une ligne par `authenticationMethodConfigurations`), `policies/mobileDeviceManagementPolicies`, `policies/mobileAppManagementPolicies` |
+| Détail accès conditionnel / méthode | objet, puis noms : `directoryObjects/{id}` (utilisateurs, groupes, rôles), `servicePrincipals?$filter=appId eq '{id}'`, `identity/conditionalAccess/namedLocations/{id}`. Lignes : `caRows` (état, conditions sans les utilisateurs, octroi, session) ; utilisateurs / groupes / rôles et cibles de méthode dans le tableau Affectations (`caAssignmentRows`) |
 | Détail catalogue | `configurationPolicies/{id}`, `.../settings?$expand=settingDefinitions`, `configurationCategories/{id}` (remonte les parents) |
 | Détail ADMX | `groupPolicyConfigurations/{id}/definitionValues?$expand=definition`, `.../presentationValues?$expand=presentation` |
 | Détail autres | `{collection}/{id}` (conformité : `$expand=scheduledActionsForRule(...)`) |

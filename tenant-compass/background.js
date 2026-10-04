@@ -31,7 +31,8 @@ const SCRIPTS = {
   }],
   asBuilt: [{
     id: 'as-built',
-    matches: ['https://intune.microsoft.com/*', 'https://endpoint.microsoft.com/*', 'https://*.portal.azure.net/*'],
+    // Intune console: Intune objects; Entra and Azure consoles: Entra objects (see as-built/page.js).
+    matches: ['https://intune.microsoft.com/*', 'https://endpoint.microsoft.com/*', 'https://entra.microsoft.com/*', 'https://portal.azure.com/*', 'https://*.portal.azure.net/*'],
     js: ['shared/drag.js', 'as-built/lib.js', 'as-built/page.js'],
     allFrames: true,
     runAt: 'document_start',

@@ -1,24 +1,37 @@
-// MAIN world, every frame of the Intune portal.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
+// MAIN world, every frame of the Intune, Entra and Azure portals.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 // All frames: observe the bearer token the portal sends to graph.microsoft.com (memory only) and answer read-only GET relays.
-// Top frame (intune/endpoint.microsoft.com): floating button, picker, exports.
+// Top frame: floating button, picker, exports. The list depends on the console: Intune objects on intune / endpoint.microsoft.com,
+// Entra objects (Conditional Access, authentication, mobility) on entra.microsoft.com and portal.azure.com.
 (() => {
   const L = globalThis.AsBuiltLib;
   const T = (k, v) => (globalThis.__tenantCompassI18n ? globalThis.__tenantCompassI18n.t(k, v) : k);
   const GRAPH_RE = /^https:\/\/graph\.microsoft\.com\/(beta|v1\.0)\//;
-  const UI_ORIGINS = ['https://intune.microsoft.com', 'https://endpoint.microsoft.com'];
-  const WORKER_ORIGIN = /^https:\/\/((intune|endpoint)\.microsoft\.com|([\w-]+\.)*portal\.azure\.net)$/;
+  const UI_ORIGINS = ['https://intune.microsoft.com', 'https://endpoint.microsoft.com', 'https://entra.microsoft.com', 'https://portal.azure.com'];
+  const WORKER_ORIGIN = /^https:\/\/((intune|endpoint|entra)\.microsoft\.com|portal\.azure\.com|([\w-]+\.)*portal\.azure\.net)$/;
   const isTop = window === window.top;
+  const CONSOLE = /^https:\/\/(intune|endpoint)\.microsoft\.com$/.test(location.origin) ? 'intune' : 'entra'; // top frame only
   const nativeFetch = window.fetch.bind(window);
-  let token = null; // never persisted, never logged, never posted to another frame
+  // One Graph token per console (Intune scopes / Policy.Read.All): never persisted, never logged, never posted to another frame.
+  const tokens = { intune: null, entra: null };
 
   // ---------- token observation ----------⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 
   function grab(url, auth) {
     try {
       if (!auth || !/^Bearer\s+\S/i.test(auth) || new URL(url, location.href).origin !== 'https://graph.microsoft.com') return;
-      const t = auth.replace(/^Bearer\s+/i, '');
-      if (L.isIntuneToken(t)) token = t; // other apps' Graph tokens (no Intune scope) would answer 403 everywhere
+      keep(auth.replace(/^Bearer\s+/i, ''));
     } catch {}
+  }
+  // Other apps' Graph tokens (no scope for this console) would answer 403 everywhere.
+  const keep = t => { for (const k of L.tokenKinds(t)) tokens[k] = t; };
+
+  // The shell hands tokens to its extension Web Worker over MessagePort (Entra blades run there): read them on the way.
+  if (isTop) for (const P of [MessagePort.prototype, Worker.prototype]) {
+    const send = P.postMessage;
+    P.postMessage = function (data) {
+      try { L.jwtsIn(data).forEach(keep); } catch {}
+      return send.apply(this, arguments);
+    };
   }
 
   window.fetch = function (input, init) {
@@ -41,7 +54,8 @@
   };
 
   // Read-only Graph call with the observed token. Only GET, only graph.microsoft.com.
-  async function graphGet(url) {
+  async function graphGet(url, kind) {
+    const token = tokens[kind];
     if (!GRAPH_RE.test(url)) return { status: 0, error: T('asBuilt.err.urlRefused') };
     if (!token) return { status: 0, error: T('asBuilt.err.noToken') };
     const r = await nativeFetch(url, { method: 'GET', credentials: 'omit', headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' } });
@@ -53,11 +67,12 @@
   if (!isTop) {
     window.addEventListener('message', async e => {
       const m = e.data;
-      if (!m || typeof m.asBuilt !== 'string' || e.source !== window.top || !UI_ORIGINS.includes(e.origin) || !token) return;
-      if (m.asBuilt === 'ping') e.source.postMessage({ asBuilt: 'pong', tenantId: L.jwtTid(token) }, e.origin); // tid claim only, never the token
+      const kind = m && m.kind === 'entra' ? 'entra' : 'intune'; // the top frame says which console it serves
+      if (!m || typeof m.asBuilt !== 'string' || e.source !== window.top || !UI_ORIGINS.includes(e.origin) || !tokens[kind]) return;
+      if (m.asBuilt === 'ping') e.source.postMessage({ asBuilt: 'pong', tenantId: L.jwtTid(tokens[kind]) }, e.origin); // tid claim only, never the token
       if (m.asBuilt === 'get' && typeof m.url === 'string') {
         let res;
-        try { res = await graphGet(m.url); } catch (err) { res = { status: 0, error: String(err.message || err) }; }
+        try { res = await graphGet(m.url, kind); } catch (err) { res = { status: 0, error: String(err.message || err) }; }
         e.source.postMessage({ asBuilt: 'res', id: m.id, ...res }, e.origin);
       }
     });
@@ -81,19 +96,19 @@
 
   async function findWorker() {
     worker = null;
-    for (const f of allFrames()) f.postMessage({ asBuilt: 'ping' }, '*');
+    for (const f of allFrames()) f.postMessage({ asBuilt: 'ping', kind: CONSOLE }, '*');
     for (let i = 0; i < 20 && !worker; i++) await new Promise(r => setTimeout(r, 100));
     return worker;
   }
 
   async function relay(url) {
-    if (token) return graphGet(url);
+    if (tokens[CONSOLE]) return graphGet(url, CONSOLE);
     if (!worker && !(await findWorker())) return { status: 0, error: 'NO_TOKEN' };
     const id = ++seq;
     return new Promise(resolve => {
       const t = setTimeout(() => { pending.delete(id); worker = null; resolve({ status: 0, error: T('asBuilt.err.timeout') }); }, 60000);
       pending.set(id, m => { clearTimeout(t); resolve(m); });
-      worker.postMessage({ asBuilt: 'get', id, url }, workerOrigin);
+      worker.postMessage({ asBuilt: 'get', id, url, kind: CONSOLE }, workerOrigin);
     });
   }
 
@@ -131,7 +146,7 @@
 
   // ---------- data ----------
 
-  const SOURCES = [
+  const INTUNE_SOURCES = [
     ['sc', '/deviceManagement/configurationPolicies'],
     ['dc', '/deviceManagement/deviceConfigurations?$select=id,displayName,description,lastModifiedDateTime'],
     ['comp', '/deviceManagement/deviceCompliancePolicies?$select=id,displayName,description,lastModifiedDateTime'],
@@ -152,19 +167,30 @@
     ['brand', '/deviceManagement/intuneBrandingProfiles'],
     ['role', '/deviceManagement/roleDefinitions'],
     ['tag', '/deviceManagement/roleScopeTags'],
-    // Entra > Mobility (MDM and WIP). Needs Policy.Read.All in the portal token: otherwise listed as a source error.
-    ['mdm', '/policies/mobileDeviceManagementPolicies?$expand=includedGroups'],
   ];
+  // Entra console: needs Policy.Read.All, carried by the Entra portal token (not by the Intune portal one).
+  const ENTRA_SOURCES = [
+    ['ca', '/identity/conditionalAccess/policies'],
+    ['loc', '/identity/conditionalAccess/namedLocations'],
+    ['auths', '/policies/authenticationStrengthPolicies'],
+    // One item per method (FIDO2, Authenticator, TAP...): the policy holds them all.
+    ['authm', () => api('/policies/authenticationMethodsPolicy').then(p => p.authenticationMethodConfigurations || [])],
+    ['mdm', '/policies/mobileDeviceManagementPolicies?$expand=includedGroups'], // Mobility (MDM and WIP)
+    ['mam', '/policies/mobileAppManagementPolicies?$expand=includedGroups'],
+  ];
+  const SOURCES = CONSOLE === 'intune' ? INTUNE_SOURCES : ENTRA_SOURCES;
   const srcLabel = kind => T('asBuilt.src.' + kind); // SOURCES = [kind, list path or loader]
   const BASE = { sc: '/deviceManagement/configurationPolicies', dc: '/deviceManagement/deviceConfigurations', comp: '/deviceManagement/deviceCompliancePolicies',
     admx: '/deviceManagement/groupPolicyConfigurations', app: '/deviceAppManagement/mobileApps', ps: '/deviceManagement/deviceManagementScripts',
     sh: '/deviceManagement/deviceShellScripts', rem: '/deviceManagement/deviceHealthScripts', ap: '/deviceManagement/windowsAutopilotDeploymentProfiles',
     enr: '/deviceManagement/deviceEnrollmentConfigurations', android: '/deviceManagement/androidDeviceOwnerEnrollmentProfiles',
     brand: '/deviceManagement/intuneBrandingProfiles', role: '/deviceManagement/roleDefinitions', tag: '/deviceManagement/roleScopeTags',
-    mdm: '/policies/mobileDeviceManagementPolicies' };
+    mdm: '/policies/mobileDeviceManagementPolicies', mam: '/policies/mobileAppManagementPolicies',
+    ca: '/identity/conditionalAccess/policies', loc: '/identity/conditionalAccess/namedLocations', auths: '/policies/authenticationStrengthPolicies',
+    authm: '/policies/authenticationMethodsPolicy/authenticationMethodConfigurations' };
   const pathOf = p => p.kind === 'dep' ? `/deviceManagement/depOnboardingSettings/${enc(p.parent)}/enrollmentProfiles/${enc(p.id)}` : `${BASE[p.kind]}/${enc(p.id)}`;
   // No assignments endpoint: ADE and Android profiles are tied to tokens, roles are assigned through roleAssignments, MDM scope sits on the policy.
-  const NO_ASSIGNMENTS = new Set(['apdev', 'dep', 'android', 'role', 'mdm']);
+  const NO_ASSIGNMENTS = new Set(['apdev', 'dep', 'android', 'role', 'mdm', 'mam', 'ca', 'loc', 'auths', 'authm']); // CA targets sit in its conditions
   const groupName = id => once('g:' + id, () => api(`/groups/${enc(id)}?$select=id,displayName`).then(g => g.displayName, () => ''));
 
   async function categories(ids) {
@@ -199,7 +225,19 @@
         rows: [...L.propertyRows(props), ...actions.map(a => ({ path: T('asBuilt.role.permissions'), name: a, value: T('asBuilt.value.yes') })),
           ...L.roleAssignmentRows(roleAssignments, Object.fromEntries(Object.entries(groups).filter(([, n]) => n)), Object.fromEntries(tags.map(t => [t.id, t.displayName])))] };
     }
-    if (p.kind === 'mdm') {
+    if (p.kind === 'ca' || p.kind === 'authm') {
+      const policy = await api(path);
+      const ids = L.caIds(p.kind, policy);
+      const names = {};
+      await pool(ids.dir, 4, async id => { names[id] = await once('o:' + id, () => api(`/directoryObjects/${enc(id)}`).then(o => o.displayName || o.userPrincipalName || id, () => id)); });
+      await pool(ids.apps, 4, async id => { names[id] = await once('a:' + id, () => api(`/servicePrincipals?$filter=appId eq '${enc(id)}'&$select=displayName`).then(r => r.value?.[0]?.displayName || id, () => id)); });
+      await pool(ids.locations, 4, async id => { names[id] = await once('l:' + id, () => api(`/identity/conditionalAccess/namedLocations/${enc(id)}`).then(o => o.displayName || id, () => id)); });
+      const named = Object.fromEntries(Object.entries(names).map(([k, v]) => [k.toLowerCase(), v]));
+      const { includeTargets, excludeTargets, ...rest } = policy; // authentication method targets: in the assignments table
+      return { raw: { policy }, names: named,
+        rows: p.kind === 'ca' ? L.caRows(policy, named) : L.propertyRows(L.withNames({ ...rest, state: L.caState(rest.state) }, named)) };
+    }
+    if (p.kind === 'mdm' || p.kind === 'mam') {
       const policy = await api(`${path}?$expand=includedGroups`);
       const { includedGroups, ...props } = policy;
       return { raw: { policy }, rows: L.propertyRows(props) };
@@ -225,8 +263,9 @@
     return { raw: { policy }, rows: L.propertyRows(props) };
   }
 
-  async function assignmentsOf(p, raw) {
-    if (p.kind === 'mdm') return { raw: {}, rows: L.mdmAssignmentRows(raw.policy) };
+  async function assignmentsOf(p, raw, names) {
+    if (p.kind === 'mdm' || p.kind === 'mam') return { raw: {}, rows: L.mdmAssignmentRows(raw.policy) };
+    if (p.kind === 'ca' || p.kind === 'authm') return { raw: {}, rows: L.caAssignmentRows(p.kind, raw.policy, names) };
     if (NO_ASSIGNMENTS.has(p.kind)) return { raw: {}, rows: [] };
     const assignments = await all(`${pathOf(p)}/assignments`);
     const groups = {}, filters = {};
@@ -246,7 +285,7 @@
     return once('d:' + p.key, async () => {
       try {
         const c = await configOf(p);
-        const a = await assignmentsOf(p, c.raw);
+        const a = await assignmentsOf(p, c.raw, c.names);
         return { ...p, settings: c.rows, assignments: a.rows, raw: { ...c.raw, ...a.raw } };
       } catch (err) {
         memo.delete('d:' + p.key);
@@ -348,13 +387,14 @@
     ui.modes = el('div', { className: 'modes' }, mode('one', T('asBuilt.ui.modeOne'), true), mode('all', T('asBuilt.ui.modeAll'), false));
     ui.scripts = el('input', { type: 'checkbox', checked: true });
     const scriptsOpt = el('label', { className: 'opt' }, ui.scripts, T('asBuilt.ui.scripts'));
+    if (CONSOLE !== 'intune') ui.os.style.display = scriptsOpt.style.display = 'none'; // Entra objects: no OS, no scripts
     ui.buttons = [
       el('button', { className: 'act', textContent: 'Markdown', onclick: () => run('md') }),
       el('button', { className: 'act', textContent: 'Word', onclick: () => run('doc') }),
       el('button', { className: 'act', textContent: 'JSON', onclick: () => run('json') }),
       el('button', { className: 'act ghost', textContent: T('asBuilt.ui.copyMd'), title: T('asBuilt.ui.copyMdTitle'), onclick: () => run('copy') }),
     ];
-    const head = el('div', { className: 'head', title: T('asBuilt.ui.drag') }, 'As-Built Intune', el('button', { className: 'x', textContent: '×', title: T('asBuilt.ui.close'), onclick: toggle }));
+    const head = el('div', { className: 'head', title: T('asBuilt.ui.drag') }, CONSOLE === 'intune' ? 'As-Built Intune' : 'As-Built Entra', el('button', { className: 'x', textContent: '×', title: T('asBuilt.ui.close'), onclick: toggle }));
     panel = el('div', { className: 'panel' },
       head,
       el('div', { className: 'bar' }, ui.all, ui.search),
@@ -452,16 +492,17 @@
       if (mode !== 'copy') for (const p of policies) if (p.kind === 'apdev' && p.raw?.devices)
         scripts.push([L.fileName(`autopilot-devices-${stampDay}`, 'csv', used), '\ufeff' + L.autopilotCsv(p.raw.devices)]);
       const stamp = new Date().toISOString().slice(0, 10);
-      const meta = { exportedAt: new Date().toISOString(), tenantId: (token && L.jwtTid(token)) || workerTid };
+      const title = CONSOLE === 'intune' ? undefined : T('asBuilt.doc.titleEntra');
+      const meta = { exportedAt: new Date().toISOString(), tenantId: (tokens[CONSOLE] && L.jwtTid(tokens[CONSOLE])) || workerTid };
       const FORMATS = {
-        md: ['md', 'text/markdown;charset=utf-8', ps => L.toMarkdown(ps)],
-        doc: ['doc', 'application/msword', ps => '\ufeff' + L.toWordHtml(ps)],
+        md: ['md', 'text/markdown;charset=utf-8', ps => L.toMarkdown(ps, title)],
+        doc: ['doc', 'application/msword', ps => '\ufeff' + L.toWordHtml(ps, title)],
         json: ['json', 'application/json', ps => JSON.stringify(L.toJson(ps, meta), null, 2)],
       };
-      if (mode === 'copy') await navigator.clipboard.writeText(L.toMarkdown(policies));
+      if (mode === 'copy') await navigator.clipboard.writeText(L.toMarkdown(policies, title));
       else {
         const [ext, type, render] = FORMATS[mode];
-        if (!split) download(`as-built-intune-${stamp}.${ext}`, type, render(policies));
+        if (!split) download(`as-built-${CONSOLE}-${stamp}.${ext}`, type, render(policies));
         else for (const p of policies) {
           download(L.fileName(p.name, ext, used), type, render([p]));
           await pause();

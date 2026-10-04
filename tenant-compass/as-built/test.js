@@ -263,4 +263,30 @@ const jwt = scp => 'h.' + Buffer.from(JSON.stringify({ scp, tid: G1 })).toString
 assert.strictEqual(L.isIntuneToken(jwt('User.Read DeviceManagementConfiguration.ReadWrite.All')), true);
 assert.strictEqual(L.isIntuneToken(jwt('User.Read openid profile')), false);
 assert.strictEqual(L.isIntuneToken('garbage'), false);
+// ---------- Entra ----------
+const jwt2 = (c) => 'eyJhbGciOiJub25lIn0.' + Buffer.from(JSON.stringify({ aud: 'https://graph.microsoft.com', exp: 4102444800, ...c })).toString('base64url') + '.s';
+assert.deepStrictEqual(L.tokenKinds(jwt2({ scp: 'Policy.Read.All Directory.Read.All' })), ['entra']);
+assert.deepStrictEqual(L.tokenKinds(jwt2({ scp: 'DeviceManagementApps.Read.All Policy.Read.All' })), ['intune', 'entra']);
+assert.deepStrictEqual(L.tokenKinds(jwt2({ scp: 'Policy.Read.All', exp: 1 })), []); // expired
+assert.deepStrictEqual(L.tokenKinds(jwt2({ scp: 'Policy.Read.All', aud: 'https://management.core.windows.net/' })), []);
+assert.deepStrictEqual(L.jwtsIn({ a: [{ b: 'Bearer ' + jwt2({}) }], c: 'x' }), [jwt2({})]);
+const U1 = '11111111-1111-1111-1111-111111111111', GR = '22222222-2222-2222-2222-222222222222', APP = '00000003-0000-0000-c000-000000000000', LOC = '33333333-3333-3333-3333-333333333333';
+const ca = { state: 'enabledForReportingButNotEnforced', displayName: 'Require MFA',
+  conditions: { users: { includeUsers: ['All'], excludeUsers: [U1], includeGroups: [], excludeGroups: [GR] },
+    applications: { includeApplications: [APP] }, locations: { includeLocations: ['All'], excludeLocations: [LOC, 'AllTrusted'] }, clientAppTypes: ['all'] },
+  grantControls: { operator: 'OR', builtInControls: ['mfa'], authenticationStrength: { id: 'x', displayName: 'Phishing-resistant MFA', allowedCombinations: ['fido2'] } },
+  sessionControls: { signInFrequency: { value: 4, type: 'hours', isEnabled: true } } };
+assert.deepStrictEqual(L.caIds('ca', ca), { dir: [U1, GR], apps: [APP], locations: [LOC] });
+const caR = L.caRows(ca, { [U1]: 'Break glass', [GR]: 'Admins', [APP]: 'Microsoft Graph', [LOC]: 'Paris office' });
+const caV = caR.map(r => `${r.path} > ${r.name} = ${r.value}`).join('\n');
+for (const s of ['Rapport seul', 'Microsoft Graph', 'Paris office', 'Tous les emplacements approuvés', 'Phishing-resistant MFA', 'mfa'])
+  assert.ok(caV.includes(s), s);
+assert.ok(!caV.includes(U1) && !caV.includes('Break glass') && !caV.includes('allowedCombinations')); // users: assignments table only
+const caA = L.caAssignmentRows('ca', ca, { [U1]: 'Break glass', [GR]: 'Admins' });
+assert.deepStrictEqual(caA.map(a => `${a.mode}:${a.group}`), ['Inclure:Tous', 'Exclure:Break glass', 'Exclure:Admins']);
+assert.deepStrictEqual(L.caAssignmentRows('authm', { includeTargets: [{ id: 'all_users' }], excludeTargets: [{ id: GR }] }, { [GR]: 'Pilot' }).map(a => `${a.mode}:${a.group}`),
+  ['Inclure:Tous les utilisateurs', 'Exclure:Pilot']);
+assert.deepStrictEqual(L.caIds('authm', { includeTargets: [{ targetType: 'group', id: 'all_users' }, { id: GR }] }).dir, [GR]);
+assert.ok(JSON.stringify(L.withNames({ includeTargets: [{ id: 'all_users' }] }, {})).includes('Tous les utilisateurs'));
+assert.ok(L.toMarkdown([], 'Dossier Entra').startsWith('# Dossier Entra'));
 console.log('as-built: new kinds checks passed');
