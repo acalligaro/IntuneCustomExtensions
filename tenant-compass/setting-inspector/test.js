@@ -75,6 +75,11 @@ assert.deepStrictEqual(extractDefs(null), []);
   const def = { id, options: [{ itemId: id + '_0', displayName: 'Non autorisé' }, { itemId: id + '_1', displayName: 'Autorisé' }] };
   assert.strictEqual(oibValue(id + '_1', def), 'Autorisé');
   assert.strictEqual(oibValue(id + '_1', { id }), '1');
+  // Setting found by name (no options): label from the Learn allowed values, else the bare value
+  const learn = { allowed: [{ value: '0', description: 'Bloquer.' }, { value: '1', description: 'Autoriser.', default: true }] };
+  assert.strictEqual(oibValue(id + '_0', { id, learn }), 'Bloquer (0)');
+  assert.strictEqual(oibValue(id + '_2', { id, learn }), '2');
+  assert.strictEqual(oibValue(id + '_0', { id, learn: {} }), '0');
   assert.strictEqual(oibValue(15, def), '15');
   assert.strictEqual(oibValue('C:\\x', def), 'C:\\x');
 }

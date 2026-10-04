@@ -12,13 +12,18 @@ function oibFor(def, oib) {
 }
 
 // Readable value: a choice value is an option itemId (<setting id>_<x>), shown with the option label the portal gives
-// for this setting (so in the portal language); else the itemId suffix. Simple values as they are.
+// for this setting (so in the portal language). A setting found by its name has no options: the suffix is then looked up
+// in the allowed values of its Learn page (def.learn, French page when available), e.g. "Block (0)"; else the bare suffix.
+// Simple values as they are.
 function oibValue(v, def) {
   const d = def || {};
   if (typeof v !== 'string') return String(v);
   const opt = (d.options || []).find(o => o.itemId === v);
   if (opt) return opt.displayName;
-  return d.id && v.startsWith(d.id + '_') ? v.slice(d.id.length + 1) : v;
+  if (!d.id || !v.startsWith(d.id + '_')) return v;
+  const x = v.slice(d.id.length + 1);
+  const a = ((d.learn && d.learn.allowed) || []).find(o => o.value === x && o.description);
+  return a ? `${a.description.trim().replace(/\.$/, '')} (${x})` : x;
 }
 
 // ---------- card section (browser only) ----------
