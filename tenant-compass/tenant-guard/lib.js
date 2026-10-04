@@ -12,10 +12,17 @@ function urlSignals(href) {
   return out;
 }
 
-// MSAL.js cache keys embed the realm (tenant ID): "<oid.tid>-login.windows.net-[idtoken-<clientId>-]<realm>".
+// *.sharepoint.com also serves the user sites: Tenant Guard acts on the SharePoint admin center only.
+function isAdminConsole(href) {
+  const { hostname } = new URL(href);
+  return !hostname.endsWith('.sharepoint.com') || hostname.endsWith('-admin.sharepoint.com');
+}
+
+// MSAL.js cache keys embed the realm (tenant ID): "<oid.tid>-login.windows.net-[idtoken-<clientId>-]<realm>" (MSAL v2),
+// "msal.<n>|<oid.tid>|login.windows.net|[idtoken|<clientId>|]<realm>" (MSAL v3+, M365 admin center, Defender).
 // Several cached realms means we cannot tell which one is displayed, so return nothing.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 function storageRealms(keys) {
-  const re = new RegExp(`-login\\.(?:windows\\.net|microsoftonline\\.com)-(?:(?:idtoken|accesstoken)-${GUID}-)?(${GUID})`, 'i');
+  const re = new RegExp(`[-|]login\\.(?:windows\\.net|microsoftonline\\.com)[-|](?:(?:idtoken|accesstoken)[-|]${GUID}[-|])?(${GUID})`, 'i');
   const realms = new Set();
   for (const k of keys) {
     const m = re.exec(k);
@@ -34,6 +41,14 @@ function matchRule(signals, rules) {
     }
   }
   return null;
+}
+
+// A rule matched by another signal (directory name) learns the tenant ID, so it also matches the consoles that only
+// expose the ID (Defender, M365 admin center). Never when the ID already belongs to a rule: the user decides then.
+// ponytail: trusts the single cached MSAL realm to be the displayed tenant, same assumption as storageRealms.
+function learnTenantId(rules, rule, id) {
+  if (!rule || !id || matchRule([id], rules)) return null;
+  return rules.map(r => r === rule ? { ...r, match: r.match.trim() ? `${r.match.trim()}, ${id}` : id } : r);
 }
 
 // Button labels (EN/FR) that write to the tenant, anchored at the start so "Saved views" does not match.⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
@@ -64,4 +79,4 @@ function mergeRules(current, data, currentColors = [], max = 5) {
   return { rules: [...byMatch.values()], imported: clean.length, customColors };
 }
 
-if (typeof module !== 'undefined') module.exports = { urlSignals, storageRealms, matchRule, isGuarded, mergeRules };
+if (typeof module !== 'undefined') module.exports = { isAdminConsole, urlSignals, storageRealms, matchRule, learnTenantId, isGuarded, mergeRules };

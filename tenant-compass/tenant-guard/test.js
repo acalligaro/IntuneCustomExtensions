@@ -1,10 +1,16 @@
 // Run: node tenant-guard/test.js⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 const assert = require('node:assert');
-const { urlSignals, storageRealms, matchRule, isGuarded, mergeRules } = require('./lib.js');
+const { isAdminConsole, urlSignals, storageRealms, matchRule, learnTenantId, isGuarded, mergeRules } = require('./lib.js');
 
 const T1 = '11111111-2222-3333-4444-555555555555';
 const T2 = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 const CLIENT = '99999999-8888-7777-6666-000000000000';
+
+// Admin consoles only, on hosts shared with end-user apps
+for (const u of ['https://contoso-admin.sharepoint.com/_layouts/15/online/AdminHome.aspx#/home', 'https://intune.microsoft.com/#home', 'https://admin.cloud.microsoft/#/homepage'])
+  assert.ok(isAdminConsole(u), u);
+for (const u of ['https://contoso.sharepoint.com/sites/hr', 'https://contoso-my.sharepoint.com/'])
+  assert.ok(!isAdminConsole(u), u);
 
 // URL signals
 assert.deepStrictEqual(urlSignals(`https://security.microsoft.com/homepage?tid=${T1}`), [T1]);
@@ -19,6 +25,11 @@ const k3 = `oid.${T2}-login.windows.net-accesstoken-${CLIENT}-${T2}-scope`;
 assert.deepStrictEqual(storageRealms([k1, k2, 'unrelated']), [T1]);
 assert.deepStrictEqual(storageRealms([k1, k3]), []);
 assert.deepStrictEqual(storageRealms([`oid.${T2}-login.windows.net-refreshtoken-${CLIENT}--`]), []);
+// MSAL v3+ keys use "|" (admin.cloud.microsoft, security.microsoft.com)
+const p1 = `msal.3|oid.${T2}|login.windows.net|idtoken|${CLIENT}|${T1}||`;
+const p2 = `msal.3|oid.${T2}|login.windows.net|accesstoken|${CLIENT}|${T1}|https://admin.cloud.microsoft/.default|`;
+assert.deepStrictEqual(storageRealms([p1, p2, `msal.3|oid.${T2}|login.windows.net|${T1}`, `msal.3|oid.${T2}|login.windows.net|refreshtoken|${CLIENT}|||`]), [T1]);
+assert.deepStrictEqual(storageRealms([p1, `msal.2|oid.${T2}|login.windows.net|accesstoken|${CLIENT}|${T2}|scope|`]), []);
 
 // Rule matching: signal order is priority, terms are comma-separated and case-insensitive
 const rules = [
@@ -30,6 +41,18 @@ assert.strictEqual(matchRule([T1], rules).rule.label, 'CONTOSO PROD');
 assert.strictEqual(matchRule(['Fabrikam Inc', T1], rules).rule.label, 'FABRIKAM');
 assert.strictEqual(matchRule(['other'], rules), null);
 assert.strictEqual(matchRule(['x'], [{ match: ' , ', label: 'empty' }]), null);
+
+// Tenant ID learned by the rule matched on the directory name, once, and never taken from another rule
+{
+  const named = [{ match: 'contoso.onmicrosoft.com', label: 'CONTOSO', prod: true }, { match: 'fabrikam', label: 'F' }];
+  const learned = learnTenantId(named, named[0], T1);
+  assert.strictEqual(learned[0].match, `contoso.onmicrosoft.com, ${T1}`);
+  assert.strictEqual(learned[1], named[1]);
+  assert.strictEqual(matchRule([T1], learned).rule.label, 'CONTOSO');
+  assert.strictEqual(learnTenantId(learned, learned[0], T1), null);
+  assert.strictEqual(learnTenantId([...named, { match: T1, label: 'OTHER' }], named[0], T1), null);
+  assert.strictEqual(learnTenantId(named, null, T1), null);
+}
 
 // Guarded buttons⁣​​‌​‌​​​​​​‌​​‌​‍​⁣
 for (const t of ['Save', 'Enregistrer', 'Review + save', 'Vérifier + créer', 'Supprimer', 'Delete', 'Assign', 'Créer', 'Wipe', '  Retire  '])

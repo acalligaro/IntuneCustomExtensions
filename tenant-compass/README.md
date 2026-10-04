@@ -35,7 +35,7 @@ Architecture détaillée (scripts, flux, sécurité, stockage) : [ARCHITECTURE.m
 
 | Fonction | Ce qu'elle fait | Où |
 |---|---|---|
-| Tenant Guard | Bandeau et cadre de couleur du tenant actif ; confirmation avant Enregistrer, Supprimer, Attribuer, Créer, Wipe, Retire dans un tenant PROD | Portails Intune, Entra, Azure, Defender, M365, Purview, Exchange, Teams |
+| Tenant Guard | Bandeau et cadre de couleur du tenant actif ; confirmation avant Enregistrer, Supprimer, Attribuer, Créer, Wipe, Retire dans un tenant PROD | Consoles d'administration Intune, Entra, Azure, Defender, M365, Purview, Exchange, Teams, SharePoint (voir [Consoles prises en charge](#consoles-prises-en-charge)) |
 | As-Built en un clic | Export des stratégies choisies en Markdown, Word et JSON, scripts compris | Bouton en bas à gauche |
 | Setting Inspector | Carte au survol d'un paramètre du catalogue, section détails : identifiant, OMA-URI / clé, applicabilité, licence, GPO équivalente, liens Learn | Carte au bord droit, au survol d'un paramètre |
 | Settings Explainer | Même carte, section explication : texte rédigé, page Learn lue en direct, valeurs, valeur par défaut. Activable seule | Même carte |
@@ -102,7 +102,25 @@ Pastille en haut de page (étiquette du tenant référencé) et cadre de la coul
 
 ![Choix de la couleur : couleurs prédéfinies, couleurs enregistrées, curseurs et code hexadécimal](docs/img/readme/fr/10-tenant-guard-couleurs.jpg)
 
-Détection du tenant, par ordre de priorité : URL (`tid=`, `tenantId=`, `ctid=`, `#@domaine`), nom de l'annuaire affiché dans l'en-tête, clés du cache MSAL de la page (seulement si un seul tenant y figure). Pour référencer un tenant : menu, *Onglet actuel*, bouton **Référencer** à côté de l'identifiant détecté.
+### Consoles prises en charge
+
+Consoles d'administration uniquement : rien n'est injecté dans les pages utilisateur (Outlook, Teams, sites SharePoint, Power BI…). Testé le 2026-10-04 (détection du tenant, pastille, cadre).
+
+| Console | Adresse | Testé |
+|---|---|---|
+| Intune | `intune.microsoft.com` (et `endpoint.microsoft.com`, redirigé) | ✅ |
+| Entra | `entra.microsoft.com` (et `aad.portal.azure.com`, redirigé) | ✅ |
+| Azure | `portal.azure.com` | ✅ |
+| Defender | `security.microsoft.com` | ✅ |
+| Centre d'administration Microsoft 365 | `admin.cloud.microsoft` (et `admin.microsoft.com`, redirigé) | ✅ |
+| Exchange | `admin.cloud.microsoft/exchange` (et `admin.exchange.microsoft.com`) | ✅ |
+| Purview | `purview.microsoft.com` (et `compliance.microsoft.com`, redirigé) | ✅ |
+| Teams | `admin.teams.microsoft.com` | ✅ |
+| SharePoint | `<tenant>-admin.sharepoint.com` | ⏳ |
+
+Non pris en charge : Power Platform, Power BI / Fabric.
+
+Détection du tenant, par ordre de priorité : URL (`tid=`, `tenantId=`, `ctid=`, `#@domaine`), nom de l'annuaire affiché dans l'en-tête, clés du cache MSAL de la page (seulement si un seul tenant y figure). Pour référencer un tenant : menu, *Onglet actuel*, bouton **Référencer** à côté de l'identifiant détecté. Un tenant référencé par son nom (ex. `contoso.onmicrosoft.com`) apprend son ID de tenant à la première visite d'Intune, Entra ou Azure : il est ensuite reconnu aussi dans les consoles qui n'exposent que l'ID (Defender, Centre d'administration Microsoft 365).
 
 ## As-Built (panneau dans le portail)
 

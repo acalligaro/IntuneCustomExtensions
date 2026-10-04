@@ -4,6 +4,8 @@
   const isTop = window === window.top;
   let rules = [];
   let state = null; // { signals, signal, label, color, prod }
+  let realm = null; // tenant ID from the MSAL cache, learned by the matched rule
+  let dirName = null;
   let last = '';
   let bypass = null;
   const started = Date.now(); // the portal shows the tenant a moment after load
@@ -13,15 +15,26 @@
 
   function signals() {
     const s = urlSignals(location.href);
-    const dir = document.querySelector('.fxs-avatarmenu-tenant')?.textContent.trim(); // Azure/Intune/Entra directory name
+    const dir = dirName = document.querySelector('.fxs-avatarmenu-tenant')?.textContent.trim() || null; // Azure/Intune/Entra directory name
     if (dir) s.push(dir);
-    try { s.push(...storageRealms([...Object.keys(localStorage), ...Object.keys(sessionStorage)])); } catch {}
+    try { realm = storageRealms([...Object.keys(localStorage), ...Object.keys(sessionStorage)])[0] || null; } catch { realm = null; }
+    if (realm) s.push(realm);
     return [...new Set(s)];
   }
 
   function detect() {
+    if (!isAdminConsole(location.href)) { // SharePoint user site: no banner, no guard
+      if (state?.off) return;
+      state = { off: true, signals: [], prod: false, color: '#605e5c' };
+      last = '';
+      root?.replaceChildren();
+      return chrome.runtime.sendMessage({ type: 'state', state });
+    }
     const sigs = signals();
     const hit = matchRule(sigs, rules);
+    // Only from the directory name: a ?tid= (GDAP) may name another tenant than the cached realm.
+    const learned = hit && hit.signal === dirName && learnTenantId(rules, hit.rule, realm);
+    if (learned) chrome.storage.sync.set({ rules: learned }).catch(() => {}); // onChanged re-runs detect()
     const next = {
       signals: sigs,
       signal: hit?.signal || sigs[0] || null,

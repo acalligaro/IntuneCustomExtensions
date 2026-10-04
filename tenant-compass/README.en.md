@@ -35,7 +35,7 @@ Detailed architecture (scripts, flows, security, storage), in French: [ARCHITECT
 
 | Feature | What it does | Where |
 |---|---|---|
-| Tenant Guard | Pill and colored frame for the active tenant; confirmation before Save, Delete, Assign, Create, Wipe, Retire in a PROD tenant | Intune, Entra, Azure, Defender, M365, Purview, Exchange, Teams portals |
+| Tenant Guard | Pill and colored frame for the active tenant; confirmation before Save, Delete, Assign, Create, Wipe, Retire in a PROD tenant | Intune, Entra, Azure, Defender, M365, Purview, Exchange, Teams, SharePoint admin consoles (see [Supported consoles](#supported-consoles)) |
 | One-click As-Built | Exports the selected policies to Markdown, Word and JSON, scripts included | Button at the bottom left |
 | Setting Inspector | Card on setting hover, details section: definition ID, OMA-URI / key, applicability, license, equivalent GPO, Learn links | Card on the right edge, on setting hover |
 | Settings Explainer | Same card, explanation section: written text, live Learn page, values, default. Can be used on its own | Same card |
@@ -100,7 +100,25 @@ Pill at the top of the page (label of the known tenant) and a frame in the chose
 
 ![Color picker: preset colors, saved colors, sliders and hex code](docs/img/readme/en/10-tenant-guard-couleurs.jpg)
 
-Tenant detection, by priority: URL (`tid=`, `tenantId=`, `ctid=`, `#@domain`), directory name shown in the header, keys of the page's MSAL cache (only when a single tenant is found there). To add a tenant: menu, *Current tab*, **Add** button next to the detected identifier.
+### Supported consoles
+
+Admin consoles only: nothing is injected into end-user pages (Outlook, Teams, SharePoint sites, Power BI…). Tested on 2026-10-04 (tenant detection, pill, frame).
+
+| Console | Address | Tested |
+|---|---|---|
+| Intune | `intune.microsoft.com` (and `endpoint.microsoft.com`, redirected) | ✅ |
+| Entra | `entra.microsoft.com` (and `aad.portal.azure.com`, redirected) | ✅ |
+| Azure | `portal.azure.com` | ✅ |
+| Defender | `security.microsoft.com` | ✅ |
+| Microsoft 365 admin center | `admin.cloud.microsoft` (and `admin.microsoft.com`, redirected) | ✅ |
+| Exchange | `admin.cloud.microsoft/exchange` (and `admin.exchange.microsoft.com`) | ✅ |
+| Purview | `purview.microsoft.com` (and `compliance.microsoft.com`, redirected) | ✅ |
+| Teams | `admin.teams.microsoft.com` | ✅ |
+| SharePoint | `<tenant>-admin.sharepoint.com` | ⏳ |
+
+Not supported: Power Platform, Power BI / Fabric.
+
+Tenant detection, by priority: URL (`tid=`, `tenantId=`, `ctid=`, `#@domain`), directory name shown in the header, keys of the page's MSAL cache (only when a single tenant is found there). To add a tenant: menu, *Current tab*, **Add** button next to the detected identifier. A tenant added by its name (e.g. `contoso.onmicrosoft.com`) learns its tenant ID on the first visit to Intune, Entra or Azure: it is then also recognized in the consoles that only expose the ID (Defender, Microsoft 365 admin center).
 
 ## As-Built (panel in the portal)
 
